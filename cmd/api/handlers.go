@@ -25,9 +25,13 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, app.logger, "home.page.tmpl")
+	render.TemplateCache(w, app.logger, "home.page.tmpl")
 }
 
 func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
-	render.Template(w, app.logger, "about.page.tmpl")
+	render.TemplateCache(w, app.logger, "about.page.tmpl")
+}
+
+func (app *application) faviconHandler(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
 }
