@@ -27,13 +27,21 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable cache in dev mode to see template changes immediately
 	useCache := app.config.env != "dev"
-	render.TemplateCache(w, app.logger, "home.page.tmpl", useCache)
+
+	data := render.NewTemplateData()
+	data.Data["Title"] = "Home"
+
+	render.TemplateCache(w, app.logger, "home.page.tmpl", useCache, data)
 }
 
 func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable cache in dev mode to see template changes immediately
 	useCache := app.config.env != "dev"
-	render.TemplateCache(w, app.logger, "about.page.tmpl", useCache)
+
+	data := render.NewTemplateData()
+	data.Data["Title"] = "About Us"
+
+	render.TemplateCache(w, app.logger, "about.page.tmpl", useCache, data)
 }
 
 func (app *application) faviconHandler(w http.ResponseWriter, r *http.Request) {
