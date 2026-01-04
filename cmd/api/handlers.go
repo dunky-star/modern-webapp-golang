@@ -1,17 +1,26 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net/http"
+	"time"
 )
 
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	n, err := fmt.Fprintf(w, "Health check")
-	if err != nil {
-		app.logger.Println(err)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	// Calculate uptime dynamically
+	uptime := time.Since(startTime).Truncate(time.Second)
+	status := map[string]interface{}{
+		"status":    "available",
+		"uptime":    uptime.String(),
+		"timestamp": time.Now().Format(time.RFC3339),
 	}
-	app.logger.Printf("Number of bytes written: %d\n", n)
+	fmt.Fprintf(w, "Version: %s\n", version)
+	if err := json.NewEncoder(w).Encode(status); err != nil {
+		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+	}
 }
 
 func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {

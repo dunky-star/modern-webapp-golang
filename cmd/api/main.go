@@ -22,6 +22,8 @@ type application struct {
 	logger *log.Logger
 }
 
+var startTime = time.Now()
+
 func main() {
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 3000, "API server port")
