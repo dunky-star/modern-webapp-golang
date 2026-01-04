@@ -5,32 +5,41 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sync"
 )
 
-var templateCache = make(map[string]*template.Template)
+var (
+	templateCache = make(map[string]*template.Template)
+	mu            sync.RWMutex
+)
 
 func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string) {
-	var tmpl *template.Template
-	var err error
-
-	// Check to see if we already have the template in our cache
+	// Check cache with read lock first
+	mu.RLock()
 	tmpl, inCache := templateCache[t]
+	mu.RUnlock()
+
 	if !inCache {
-		// Need to check the template and add it to the cache
-		logger.Println("Creating template and adding to cache")
-		err = createTemplateCache(t)
-		if err != nil {
-			logger.Println(err)
-			return
+		// Acquire write lock to create template
+		mu.Lock()
+		// Double-check after acquiring lock (another goroutine might have created it)
+		tmpl, inCache = templateCache[t]
+		if !inCache {
+			logger.Println("Creating template and adding to cache")
+			err := createTemplateCache(t)
+			if err != nil {
+				mu.Unlock()
+				logger.Println(err)
+				return
+			}
+			tmpl = templateCache[t]
 		}
-		// Get the template from cache after creating it
-		tmpl = templateCache[t]
+		mu.Unlock()
 	} else {
-		// We have the template in cache, so we can use it
 		logger.Println("Using template from cache")
 	}
 
-	err = tmpl.Execute(w, nil)
+	err := tmpl.Execute(w, nil)
 	if err != nil {
 		logger.Println(err)
 		return
@@ -49,7 +58,7 @@ func createTemplateCache(t string) error {
 		return err
 	}
 
-	// Add the template to the cache
+	// Add the template to the cache (caller holds the lock)
 	templateCache[t] = tmpl
 	return nil
 }
