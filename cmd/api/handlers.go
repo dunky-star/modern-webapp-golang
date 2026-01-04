@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	appdata "github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/pkg/render"
 )
 
@@ -28,20 +29,20 @@ func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable cache in dev mode to see template changes immediately
 	useCache := app.config.env != "dev"
 
-	data := render.NewTemplateData()
-	data.Data["Title"] = "Home"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Home, welcome!"
 
-	render.TemplateCache(w, app.logger, "home.page.tmpl", useCache, data)
+	render.TemplateCache(w, app.logger, "home.page.tmpl", useCache, tmplData)
 }
 
 func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable cache in dev mode to see template changes immediately
 	useCache := app.config.env != "dev"
 
-	data := render.NewTemplateData()
-	data.Data["Title"] = "About Us"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "About Us"
 
-	render.TemplateCache(w, app.logger, "about.page.tmpl", useCache, data)
+	render.TemplateCache(w, app.logger, "about.page.tmpl", useCache, tmplData)
 }
 
 func (app *application) faviconHandler(w http.ResponseWriter, r *http.Request) {

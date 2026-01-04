@@ -8,36 +8,14 @@ import (
 	"sync"
 )
 
-// TemplateData holds data sent from handlers to templates
-type TemplateData struct {
-	StringMap map[string]string
-	IntMap    map[string]int
-	FloatMap  map[string]float32
-	Data      map[string]interface{}
-	CSRFToken string
-	Flash     string
-	Warning   string
-	Error     string
-}
-
-// NewTemplateData creates a new TemplateData with initialized maps
-func NewTemplateData() *TemplateData {
-	return &TemplateData{
-		StringMap: make(map[string]string),
-		IntMap:    make(map[string]int),
-		FloatMap:  make(map[string]float32),
-		Data:      make(map[string]interface{}),
-	}
-}
-
 var (
 	templateCache = make(map[string]*template.Template)
 	mu            sync.RWMutex
 )
 
 // TemplateCache renders a template using cache. Set useCache to false to always reload templates (useful for development)
-// If data is nil, an empty TemplateData will be used
-func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string, useCache bool, data *TemplateData) {
+// If data is nil, no data will be passed to the template
+func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string, useCache bool, data interface{}) {
 	var tmpl *template.Template
 	var err error
 
@@ -79,11 +57,6 @@ func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string, useCache
 			logger.Println(parseErr)
 			return
 		}
-	}
-
-	// Use provided data or empty TemplateData if nil
-	if data == nil {
-		data = &TemplateData{}
 	}
 
 	err = tmpl.Execute(w, data)
