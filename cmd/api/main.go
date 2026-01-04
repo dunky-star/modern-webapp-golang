@@ -1,0 +1,55 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"time"
+)
+
+const version = "1.0.0"
+
+// Config, to allow the server to be configured at startup dynamically
+type config struct {
+	port int
+	env  string
+}
+
+type application struct {
+	config config
+	logger *log.Logger
+}
+
+func main() {
+	var cfg config
+	flag.IntVar(&cfg.port, "port", 3000, "API server port")
+	flag.StringVar(&cfg.env, "env", "dev", "Environment (dev|stage|prod)")
+	flag.Parse()
+
+	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+
+	app := &application{
+		config: cfg,
+		logger: logger,
+	}
+
+	// Create the HTTP Server
+	srv := &http.Server{
+		Addr:         fmt.Sprintf(":%d", cfg.port),
+		Handler:      app.routes(),     // Set the routes for the server
+		ReadTimeout:  10 * time.Second, // Maximum duration for reading the entire request, including the body
+		WriteTimeout: 30 * time.Second, // Maximum duration before timing out writes of the response
+		IdleTimeout:  time.Minute,      // Maximum amount of time to wait for the next request when keep-alives are enabled
+	}
+
+	// Define the server address and port
+	addr := fmt.Sprintf(":%d", cfg.port)
+
+	logger.Printf("Server is running on http://localhost%s\n", addr)
+
+	// Start the server and log any error if it fails
+	err := srv.ListenAndServe()
+	logger.Fatal(err)
+}
