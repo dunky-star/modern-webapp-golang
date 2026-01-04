@@ -13,33 +13,52 @@ var (
 	mu            sync.RWMutex
 )
 
-func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string) {
-	// Check cache with read lock first
-	mu.RLock()
-	tmpl, inCache := templateCache[t]
-	mu.RUnlock()
+// TemplateCache renders a template using cache. Set useCache to false to always reload templates (useful for development)
+func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string, useCache bool) {
+	var tmpl *template.Template
+	var err error
 
-	if !inCache {
-		// Acquire write lock to create template
-		mu.Lock()
-		// Double-check after acquiring lock (another goroutine might have created it)
+	if useCache {
+		// Check cache with read lock first
+		mu.RLock()
+		var inCache bool
 		tmpl, inCache = templateCache[t]
+		mu.RUnlock()
+
 		if !inCache {
-			logger.Println("Creating template and adding to cache")
-			err := createTemplateCache(t)
-			if err != nil {
-				mu.Unlock()
-				logger.Println(err)
-				return
+			// Acquire write lock to create template
+			mu.Lock()
+			// Double-check after acquiring lock (another goroutine might have created it)
+			tmpl, inCache = templateCache[t]
+			if !inCache {
+				logger.Println("Creating template and adding to cache")
+				err = createTemplateCache(t)
+				if err != nil {
+					mu.Unlock()
+					logger.Println(err)
+					return
+				}
+				tmpl = templateCache[t]
 			}
-			tmpl = templateCache[t]
+			mu.Unlock()
+		} else {
+			logger.Println("Using template from cache")
 		}
-		mu.Unlock()
 	} else {
-		logger.Println("Using template from cache")
+		// Development mode: always reload template
+		templates := []string{
+			fmt.Sprintf("./web/%s", t),
+			"./web/base.layout.tmpl",
+		}
+		var parseErr error
+		tmpl, parseErr = template.ParseFiles(templates...)
+		if parseErr != nil {
+			logger.Println(parseErr)
+			return
+		}
 	}
 
-	err := tmpl.Execute(w, nil)
+	err = tmpl.Execute(w, nil)
 	if err != nil {
 		logger.Println(err)
 		return
