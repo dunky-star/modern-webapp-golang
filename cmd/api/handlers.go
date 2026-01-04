@@ -3,9 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
 	"net/http"
 	"time"
+
+	"github.com/dunky-star/modern-webapp-golang/pkg/render"
 )
 
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -24,21 +25,9 @@ func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
-	app.renderTemplate(w, "home.page.tmpl")
+	render.Template(w, app.logger, "home.page.tmpl")
 }
 
 func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
-	app.renderTemplate(w, "about.page.tmpl")
-}
-
-func (app *application) renderTemplate(w http.ResponseWriter, tmpl string) {
-	parsedTemplate, err := template.ParseFiles("./web/" + tmpl)
-	if err != nil {
-		app.logger.Println(err)
-		return
-	}
-	err = parsedTemplate.Execute(w, nil)
-	if err != nil {
-		app.logger.Println(err)
-	}
+	render.Template(w, app.logger, "about.page.tmpl")
 }
