@@ -30,6 +30,7 @@ func main() {
 	flag.StringVar(&cfg.env, "env", "dev", "Environment (dev|stage|prod)")
 	flag.Parse()
 
+	// General application logger (stdout)
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	app := &application{
@@ -50,6 +51,9 @@ func main() {
 	addr := fmt.Sprintf(":%d", cfg.port)
 
 	logger.Printf("Server is running on http://localhost%s\n", addr)
+
+	// Ensure request logger is closed on shutdown
+	defer closeRequestLogger()
 
 	// Start the server and log any error if it fails
 	err := srv.ListenAndServe()
