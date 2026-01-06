@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"sync"
@@ -87,4 +88,67 @@ type responseWriter struct {
 func (rw *responseWriter) WriteHeader(code int) {
 	rw.statusCode = code
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+// csrfTokenGenerator is middleware that generates and sets CSRF tokens for GET requests
+// and stores the token in request context for use in templates
+func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only generate tokens for GET requests (that might render templates)
+		if r.Method == http.MethodGet {
+			token, err := app.generateAndSetCSRFToken(w, r)
+			if err != nil {
+				app.logger.Printf("Error generating CSRF token: %v", err)
+				// Continue anyway - token generation failure shouldn't break the request
+			} else {
+				// Store token in context for handlers to access
+				ctx := context.WithValue(r.Context(), CSRFTokenKey, token)
+				r = r.WithContext(ctx)
+			}
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// csrfProtect is middleware that validates CSRF tokens for non-safe HTTP methods
+func (app *application) csrfProtect(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip CSRF validation for safe methods
+		if isSafeMethod(r.Method) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Validate CSRF token for non-safe methods
+		if err := validateCSRFToken(r); err != nil {
+			app.logger.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			http.Error(w, "Forbidden: Invalid CSRF token", http.StatusForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// secureHeaders adds security headers to all responses
+// Should be applied globally to protect against common web vulnerabilities
+func secureHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "deny")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// cacheControl adds cache headers for static files
+// Should only be applied to static file routes, not dynamic content
+func cacheControl(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Cache static files for 1 hour
+		w.Header().Set("Cache-Control", "public, max-age=3600")
+		next.ServeHTTP(w, r)
+	})
 }

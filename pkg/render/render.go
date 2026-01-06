@@ -1,6 +1,7 @@
 package render
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"log"
@@ -15,7 +16,18 @@ var (
 
 // TemplateCache renders a template using cache. Set useCache to false to always reload templates (useful for development)
 // If data is nil, no data will be passed to the template
-func TemplateCache(w http.ResponseWriter, logger *log.Logger, t string, useCache bool, data interface{}) {
+// Automatically injects CSRF token from request context if data is TemplateData
+func TemplateCache(w http.ResponseWriter, r *http.Request, logger *log.Logger, t string, useCache bool, data interface{}) {
+	// Automatically inject CSRF token from context if data is TemplateData
+	if r != nil && data != nil {
+		if tmplData, ok := data.(interface {
+			SetCSRFToken(string)
+		}); ok {
+			if token := getCSRFTokenFromContext(r.Context()); token != "" {
+				tmplData.SetCSRFToken(token)
+			}
+		}
+	}
 	var tmpl *template.Template
 	var err error
 
@@ -81,4 +93,14 @@ func createTemplateCache(t string) error {
 	// Add the template to the cache (caller holds the lock)
 	templateCache[t] = tmpl
 	return nil
+}
+
+// getCSRFTokenFromContext retrieves CSRF token from request context
+// Uses the same string key as csrf middleware (CSRFTokenKey = "csrf_token")
+func getCSRFTokenFromContext(ctx context.Context) string {
+	const csrfTokenKey = "csrf_token" // Must match CSRFTokenKey in cmd/api/csrf.go
+	if token, ok := ctx.Value(csrfTokenKey).(string); ok {
+		return token
+	}
+	return ""
 }

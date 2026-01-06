@@ -21,3 +21,8 @@ func NewTemplateData() *TemplateData {
 		Data:      make(map[string]interface{}),
 	}
 }
+
+// SetCSRFToken sets the CSRF token (used by render package to auto-inject from context)
+func (td *TemplateData) SetCSRFToken(token string) {
+	td.CSRFToken = token
+}

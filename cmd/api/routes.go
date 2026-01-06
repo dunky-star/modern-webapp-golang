@@ -12,6 +12,16 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /v1/about", app.aboutUsHandler)
 
 	// Apply middleware chain (order matters: last middleware wraps first)
-	// Health check typically doesn't need request logging in production
-	return app.logRequest(mux)
+	// Security headers (outermost - applies to all responses)
+	// -> Request logging
+	// -> CSRF protection
+	// -> CSRF token generation
+	// -> Routes
+	return secureHeaders(
+		app.logRequest(
+			app.csrfProtect(
+				app.csrfTokenGenerator(mux),
+			),
+		),
+	)
 }

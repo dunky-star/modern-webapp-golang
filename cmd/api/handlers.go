@@ -32,7 +32,8 @@ func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
 	tmplData := appdata.NewTemplateData()
 	tmplData.Data["Title"] = "Home, welcome!"
 
-	render.TemplateCache(w, app.logger, "home.page.tmpl", useCache, tmplData)
+	// CSRF token automatically injected by render.TemplateCache from middleware context
+	render.TemplateCache(w, r, app.logger, "home.page.tmpl", useCache, tmplData)
 }
 
 func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
@@ -42,7 +43,8 @@ func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 	tmplData := appdata.NewTemplateData()
 	tmplData.Data["Title"] = "About Us"
 
-	render.TemplateCache(w, app.logger, "about.page.tmpl", useCache, tmplData)
+	// CSRF token automatically injected by render.TemplateCache from middleware context
+	render.TemplateCache(w, r, app.logger, "about.page.tmpl", useCache, tmplData)
 }
 
 func (app *application) faviconHandler(w http.ResponseWriter, r *http.Request) {
