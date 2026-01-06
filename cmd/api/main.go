@@ -47,13 +47,10 @@ func main() {
 		IdleTimeout:  time.Minute,      // Maximum amount of time to wait for the next request when keep-alives are enabled
 	}
 
-	// Define the server address and port
-	addr := fmt.Sprintf(":%d", cfg.port)
-
-	logger.Printf("Server is running on http://localhost%s\n", addr)
-
 	// Ensure request logger is closed on shutdown
 	defer closeRequestLogger()
+
+	logger.Printf("Server is running on %s\n", getServerURL(cfg.port))
 
 	// Start the server and log any error if it fails
 	err := srv.ListenAndServe()

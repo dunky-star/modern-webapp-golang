@@ -12,7 +12,7 @@ import (
 const (
 	maxLogSize  = 5 * 1024 * 1024     // 5MB
 	maxLogAge   = 14 * 24 * time.Hour // 2 weeks
-	logDir      = "log"
+	logDir      = "output/logs"
 	logFileName = "access.log"
 )
 

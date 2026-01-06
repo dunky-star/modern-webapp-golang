@@ -36,7 +36,7 @@ func closeRequestLogger() {
 }
 
 // logRequest logs HTTP request details (method, path, remote address, duration)
-// Logs are written to a rotating file (log/access.log) that rotates at 5MB or 2 weeks
+// Logs are written to a rotating file (output/logs/access.log) that rotates at 5MB or 2 weeks
 func (app *application) logRequest(next http.Handler) http.Handler {
 	// Initialize request logger on first use (also write to console in dev mode)
 	alsoWriteToConsole := app.config.env == "dev"
