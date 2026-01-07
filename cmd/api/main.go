@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/alexedwards/scs/v2"
 )
 
 const version = "1.0.0"
@@ -18,8 +20,9 @@ type config struct {
 }
 
 type application struct {
-	config config
-	logger *log.Logger
+	config  config
+	logger  *log.Logger
+	session *scs.SessionManager
 }
 
 var startTime = time.Now()
@@ -34,8 +37,9 @@ func main() {
 	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 
 	app := &application{
-		config: cfg,
-		logger: logger,
+		config:  cfg,
+		logger:  logger,
+		session: newSessionManager(cfg.env),
 	}
 
 	// Create the HTTP Server

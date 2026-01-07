@@ -14,13 +14,16 @@ func (app *application) routes() http.Handler {
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
 	// -> Request logging
+	// -> Session management
 	// -> CSRF protection
 	// -> CSRF token generation
 	// -> Routes
 	return secureHeaders(
 		app.logRequest(
-			app.csrfProtect(
-				app.csrfTokenGenerator(mux),
+			app.session.LoadAndSave(
+				app.csrfProtect(
+					app.csrfTokenGenerator(mux),
+				),
 			),
 		),
 	)
