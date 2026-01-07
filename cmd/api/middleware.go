@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"sync"
 	"time"
+
+	"github.com/alexedwards/scs/v2"
 )
 
 var (
@@ -151,4 +153,19 @@ func cacheControl(next http.Handler) http.Handler {
 		w.Header().Set("Cache-Control", "public, max-age=3600")
 		next.ServeHTTP(w, r)
 	})
+}
+
+// newSessionManager creates and configures a new session manager
+func newSessionManager(env string) *scs.SessionManager {
+	sessionManager := scs.New()
+	sessionManager.Lifetime = 24 * time.Hour
+	sessionManager.Cookie.Secure = isSecureCookie(env)
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	return sessionManager
+}
+
+// sessionMiddleware wraps the session manager's LoadAndSave middleware
+func (app *application) sessionMiddleware(next http.Handler) http.Handler {
+	return app.session.LoadAndSave(next)
 }

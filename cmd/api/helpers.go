@@ -14,3 +14,8 @@ func getServerURL(port int) string {
 	}
 	return fmt.Sprintf("http://%s%s", hostname, addr)
 }
+
+// isSecureCookie returns true if cookies should use the Secure flag (HTTPS only)
+func isSecureCookie(env string) bool {
+	return env == "prod"
+}

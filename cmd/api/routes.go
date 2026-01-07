@@ -20,7 +20,7 @@ func (app *application) routes() http.Handler {
 	// -> Routes
 	return secureHeaders(
 		app.logRequest(
-			app.session.LoadAndSave(
+			app.sessionMiddleware(
 				app.csrfProtect(
 					app.csrfTokenGenerator(mux),
 				),

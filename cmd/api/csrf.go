@@ -31,13 +31,12 @@ func generateCSRFToken() (string, error) {
 
 // setCSRFCookie sets the CSRF token as an HTTP-only cookie
 func (app *application) setCSRFCookie(w http.ResponseWriter, token string) {
-	secure := app.config.env == "prod" // Only use Secure flag in production (HTTPS)
 	cookie := &http.Cookie{
 		Name:     csrfCookieName,
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   secure,
+		Secure:   isSecureCookie(app.config.env),
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   int(csrfMaxAge.Seconds()),
 	}
