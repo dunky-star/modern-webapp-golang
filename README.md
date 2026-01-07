@@ -9,6 +9,7 @@
 
 - **RESTful API** with JSON responses and health check endpoints
 - **Template Rendering** using Go's `html/template` package with intelligent caching
+- **Session Management** using industry-standard `alexedwards/scs` with secure cookie-based sessions
 - **CSRF Protection** with cryptographically secure token generation and validation
 - **Security Headers** middleware for XSS, clickjacking, and content-type protection
 - **Request Logging** with rotating log files (size and age-based rotation)
@@ -120,6 +121,15 @@ The application supports the following command-line flags:
 - 12-hour token validity
 - Automatic token injection into templates
 
+### Session Management
+- **Industry-standard implementation** using `alexedwards/scs/v2`
+- **Cookie-based sessions** with secure, HTTP-only cookies
+- **24-hour session lifetime** with automatic expiration
+- **Environment-aware security**: Secure flag enabled in production (HTTPS only)
+- **SameSite=Strict** protection against CSRF attacks
+- **Stateless design** - session data stored client-side in encrypted cookies
+- **Simple API**: `session.Put()`, `session.Get()`, `session.GetString()` for easy access
+
 ### Security Headers
 - `X-Content-Type-Options: nosniff` - Prevents MIME type sniffing
 - `X-Frame-Options: deny` - Prevents clickjacking attacks
@@ -132,8 +142,9 @@ The application uses a layered middleware approach (applied in order):
 
 1. **Security Headers** - Adds security headers to all responses
 2. **Request Logging** - Logs all HTTP requests with method, path, status, and duration
-3. **CSRF Protection** - Validates CSRF tokens for non-safe HTTP methods
-4. **CSRF Token Generation** - Generates and injects tokens for GET requests
+3. **Session Management** - Loads and saves session data for each request
+4. **CSRF Protection** - Validates CSRF tokens for non-safe HTTP methods
+5. **CSRF Token Generation** - Generates and injects tokens for GET requests
 
 ## 📊 Logging
 
@@ -164,6 +175,7 @@ The application uses a layered middleware approach (applied in order):
   - Read timeout: 10 seconds
   - Write timeout: 30 seconds
   - Idle timeout: 1 minute
+- **Session Management**: Secure, cookie-based sessions with industry-standard implementation
 - **Structured Logging**: Built-in logging with timestamps and rotating files
 - **Error Handling**: Comprehensive error handling and logging
 - **Template Safety**: HTML escaping for XSS protection
