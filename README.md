@@ -111,63 +111,19 @@ The application supports the following command-line flags:
 - **`stage`** - Staging mode: template caching enabled, logs to file only
 - **`prod`** - Production mode: template caching enabled, secure cookies, logs to file only
 
-## 🛡️ Security Features
-
-### CSRF Protection
-- Cryptographically secure token generation (32-byte random tokens)
-- HTTP-only cookies with SameSite=Strict
-- Constant-time comparison to prevent timing attacks
-- Supports both header (`X-CSRF-Token`) and form field (`csrf_token`) submission
-- 12-hour token validity
-- Automatic token injection into templates
-
-### Session Management
-- **Industry-standard implementation** using `alexedwards/scs/v2`
-- **Cookie-based sessions** with secure, HTTP-only cookies
-- **24-hour session lifetime** with automatic expiration
-- **Environment-aware security**: Secure flag enabled in production (HTTPS only)
-- **SameSite=Strict** protection against CSRF attacks
-- **Stateless design** - session data stored client-side in encrypted cookies
-- **Simple API**: `session.Put()`, `session.Get()`, `session.GetString()` for easy access
-
-### Security Headers
-- `X-Content-Type-Options: nosniff` - Prevents MIME type sniffing
-- `X-Frame-Options: deny` - Prevents clickjacking attacks
-- `X-XSS-Protection: 1; mode=block` - Enables XSS filtering
-- `Referrer-Policy: strict-origin-when-cross-origin` - Controls referrer information
-
 ## 🔄 Middleware Stack
 
 The application uses a layered middleware approach (applied in order):
 
-1. **Security Headers** - Adds security headers to all responses
-2. **Request Logging** - Logs all HTTP requests with method, path, status, and duration
-3. **Session Management** - Loads and saves session data for each request
-4. **CSRF Protection** - Validates CSRF tokens for non-safe HTTP methods
-5. **CSRF Token Generation** - Generates and injects tokens for GET requests
+1. **Security Headers** - Adds security headers (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy) to all responses
+2. **Request Logging** - Logs all HTTP requests to `output/logs/access.log` with rotating files (5MB/2 weeks max)
+3. **Session Management** - Cookie-based sessions using `alexedwards/scs/v2` with 24-hour lifetime and secure, HTTP-only cookies
+4. **CSRF Protection** - Validates CSRF tokens (32-byte, constant-time comparison) for non-safe HTTP methods
+5. **CSRF Token Generation** - Generates and injects tokens into templates for GET requests
 
-## 📊 Logging
-
-### Request Logging
-- All HTTP requests are logged to `output/logs/access.log`
-- Log format: `RemoteAddr Protocol Method Path StatusCode Duration`
-- Rotating log files based on:
-  - **Size**: Rotates when file exceeds 5MB
-  - **Age**: Rotates when file is older than 2 weeks
-- Rotated files are archived with timestamp: `access.log.YYYYMMDD-HHMMSS`
-- In development mode, logs are also written to console
-
-### Application Logging
-- Structured logging with timestamps
-- Separate loggers for application events and HTTP requests
-
-## 🎨 Template System
-
-- **Template Caching**: Templates are cached in production for performance
-- **Development Mode**: Templates reload on every request for easy development
-- **CSRF Token Injection**: Tokens are automatically injected into template context
-- **Base Layout**: Shared base template with Bootstrap styling
-- **HTML Escaping**: Automatic XSS protection via Go's template package
+**Additional Features:**
+- **Template System**: Caching in production, auto-reload in dev, automatic CSRF token injection, HTML escaping
+- **Logging**: Structured logging with timestamps, separate loggers for application events and HTTP requests
 
 ## 🛡️ Production Features
 
@@ -177,8 +133,6 @@ The application uses a layered middleware approach (applied in order):
   - Idle timeout: 1 minute
 - **Error Handling**: Comprehensive error handling and logging
 - **Environment-Aware**: Different behaviors for dev, stage, and prod environments
-
-> **Note**: For detailed information on security features (CSRF, Sessions, Security Headers), logging, and templates, see their respective sections above.
 
 ## 📝 License
 
