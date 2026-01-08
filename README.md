@@ -175,13 +175,10 @@ The application uses a layered middleware approach (applied in order):
   - Read timeout: 10 seconds
   - Write timeout: 30 seconds
   - Idle timeout: 1 minute
-- **Session Management**: Secure, cookie-based sessions with industry-standard implementation
-- **Structured Logging**: Built-in logging with timestamps and rotating files
 - **Error Handling**: Comprehensive error handling and logging
-- **Template Safety**: HTML escaping for XSS protection
-- **CSRF Protection**: Full CSRF token generation and validation
-- **Security Headers**: Multiple security headers for web vulnerability protection
 - **Environment-Aware**: Different behaviors for dev, stage, and prod environments
+
+> **Note**: For detailed information on security features (CSRF, Sessions, Security Headers), logging, and templates, see their respective sections above.
 
 ## 📝 License
 
