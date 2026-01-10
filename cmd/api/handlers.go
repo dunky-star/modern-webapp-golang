@@ -61,6 +61,37 @@ func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 	render.TemplateCache(w, r, app.logger, "about.page.tmpl", useCache, tmplData)
 }
 
-func (app *application) faviconHandler(w http.ResponseWriter, r *http.Request) {
-	http.NotFound(w, r)
+func (app *application) generalsQuartersHandler(w http.ResponseWriter, r *http.Request) {
+	useCache := app.config.env != "dev"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Generals Quarters"
+	render.TemplateCache(w, r, app.logger, "generals-quarters.page.tmpl", useCache, tmplData)
+}
+
+func (app *application) majorsSuiteHandler(w http.ResponseWriter, r *http.Request) {
+	useCache := app.config.env != "dev"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Majors Suite"
+	render.TemplateCache(w, r, app.logger, "majors-suite.page.tmpl", useCache, tmplData)
+}
+
+func (app *application) makeReservationHandler(w http.ResponseWriter, r *http.Request) {
+	useCache := app.config.env != "dev"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Make Reservation"
+	render.TemplateCache(w, r, app.logger, "make-reservation.page.tmpl", useCache, tmplData)
+}
+
+func (app *application) searchAvailabilityHandler(w http.ResponseWriter, r *http.Request) {
+	useCache := app.config.env != "dev"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Search Availability"
+	render.TemplateCache(w, r, app.logger, "search-availability.page.tmpl", useCache, tmplData)
+}
+
+func (app *application) contactHandler(w http.ResponseWriter, r *http.Request) {
+	useCache := app.config.env != "dev"
+	tmplData := appdata.NewTemplateData()
+	tmplData.Data["Title"] = "Contact Us"
+	render.TemplateCache(w, r, app.logger, "contact.page.tmpl", useCache, tmplData)
 }

@@ -5,14 +5,20 @@ import "net/http"
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
-	// Static file serving with caching headers for better performance
-	mux.Handle("/static/", cacheControl(http.StripPrefix("/static/", http.FileServer(http.Dir("./static")))))
+	// Static file serving with caching headers (method-specific to avoid Go 1.22+ conflicts)
+	staticHandler := cacheControl(http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	mux.HandleFunc("GET /static/", staticHandler.ServeHTTP)
+	mux.HandleFunc("HEAD /static/", staticHandler.ServeHTTP)
 
-	// Register routes
+	// Register application routes
 	mux.HandleFunc("GET /", app.homeHandler)
-	mux.HandleFunc("GET /favicon.ico", app.faviconHandler)
-	mux.HandleFunc("GET /v1/health", app.healthCheckHandler)
-	mux.HandleFunc("GET /v1/about", app.aboutUsHandler)
+	mux.HandleFunc("GET /health", app.healthCheckHandler)
+	mux.HandleFunc("GET /about", app.aboutUsHandler)
+	mux.HandleFunc("GET /contact", app.contactHandler)
+	mux.HandleFunc("GET /search-availability", app.searchAvailabilityHandler)
+	mux.HandleFunc("GET /generals-quarters", app.generalsQuartersHandler)
+	mux.HandleFunc("GET /majors-suite", app.majorsSuiteHandler)
+	mux.HandleFunc("GET /make-reservation", app.makeReservationHandler)
 
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
