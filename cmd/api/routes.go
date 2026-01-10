@@ -5,6 +5,9 @@ import "net/http"
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
+	// Static file serving with caching headers for better performance
+	mux.Handle("/static/", cacheControl(http.StripPrefix("/static/", http.FileServer(http.Dir("./static")))))
+
 	// Register routes
 	mux.HandleFunc("GET /", app.homeHandler)
 	mux.HandleFunc("GET /favicon.ico", app.faviconHandler)

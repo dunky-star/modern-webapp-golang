@@ -29,8 +29,15 @@ func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Disable cache in dev mode to see template changes immediately
 	useCache := app.config.env != "dev"
 
+	remoteIPAddr := r.RemoteAddr
+	app.logger.Printf("Remote address: %s", remoteIPAddr)
+	app.session.Put(r.Context(), "remote_addr", remoteIPAddr)
+
 	tmplData := appdata.NewTemplateData()
 	tmplData.Data["Title"] = "Home, welcome!"
+	tmplData.StringMap = map[string]string{
+		"remote_addr": remoteIPAddr,
+	}
 
 	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "home.page.tmpl", useCache, tmplData)
@@ -42,6 +49,13 @@ func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 
 	tmplData := appdata.NewTemplateData()
 	tmplData.Data["Title"] = "About Us"
+
+	// Retrieve remote address from session
+	if remoteAddr := app.session.GetString(r.Context(), "remote_addr"); remoteAddr != "" {
+		tmplData.StringMap = map[string]string{
+			"remote_addr": remoteAddr,
+		}
+	}
 
 	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "about.page.tmpl", useCache, tmplData)
