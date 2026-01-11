@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/internal/render"
 	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
 	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 	"github.com/dunky-star/modern-webapp-golang/pkg/logging"
@@ -169,6 +170,11 @@ func newSessionManager(env string) *scs.SessionManager {
 }
 
 // sessionMiddleware wraps the session manager's LoadAndSave middleware
+// and injects the session manager into request context for automatic access
 func (app *application) sessionMiddleware(next http.Handler) http.Handler {
-	return app.session.LoadAndSave(next)
+	return app.session.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Inject session manager into context for automatic access by render package
+		ctx := context.WithValue(r.Context(), render.SessionManagerKey{}, app.session)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	}))
 }

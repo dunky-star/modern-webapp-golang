@@ -41,7 +41,6 @@ func (app *application) homeHandler(w http.ResponseWriter, r *http.Request) {
 		"remote_addr": remoteIPAddr,
 	}
 
-	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "home.page.tmpl", useCache, tmplData)
 }
 
@@ -59,7 +58,6 @@ func (app *application) aboutUsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "about.page.tmpl", useCache, tmplData)
 }
 
@@ -128,7 +126,6 @@ func (app *application) makeReservationHandler(w http.ResponseWriter, r *http.Re
 	tmplData.Data["reservation"] = emptyReservation
 	tmplData.Form = forms.New(nil) // Empty form for GET request (no errors initially)
 
-	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "make-reservation.page.tmpl", useCache, tmplData)
 }
 
@@ -207,6 +204,5 @@ func (app *application) reservationSummary(w http.ResponseWriter, r *http.Reques
 	tmplData.Data["Title"] = "Reservation Summary"
 	tmplData.Data["reservation"] = reservation
 
-	// CSRF token automatically injected by render.TemplateCache from middleware context
 	render.TemplateCache(w, r, app.logger, "reservation-summary.page.tmpl", useCache, tmplData)
 }
