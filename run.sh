@@ -1,0 +1,1 @@
+go build -o modern-web-app cmd/api/*.go && ./modern-web-app

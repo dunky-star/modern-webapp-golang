@@ -7,10 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alexedwards/scs/v2"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
 	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
-	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 	"github.com/dunky-star/modern-webapp-golang/pkg/logging"
 )
 
@@ -44,12 +42,12 @@ func closeRequestLogger() {
 
 // logRequest logs HTTP request details (method, path, remote address, duration)
 // Logs are written to a rotating file (output/logs/access.log) that rotates at 5MB or 2 weeks
-func (app *application) logRequest(next http.Handler) http.Handler {
+func logRequest(next http.Handler) http.Handler {
 	// Initialize request logger on first use (also write to console in dev mode)
-	alsoWriteToConsole := app.config.env == "dev"
+	alsoWriteToConsole := app.Env == "dev"
 	if err := initRequestLogger(alsoWriteToConsole); err != nil {
 		// Fallback to app logger if rotation init fails
-		app.logger.Printf("Warning: Failed to initialize request logger: %v", err)
+		app.Logger.Printf("Warning: Failed to initialize request logger: %v", err)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +73,7 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 			)
 		} else {
 			// Fallback to app logger if request logger not initialized
-			app.logger.Printf("%s %s %s %s %d %v",
+			app.Logger.Printf("%s %s %s %s %d %v",
 				r.RemoteAddr,
 				r.Proto,
 				r.Method,
@@ -112,13 +110,13 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 
 // csrfTokenGenerator is middleware that generates and sets CSRF tokens for GET requests
 // and stores the token in request context for use in templates
-func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
+func csrfTokenGenerator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only generate tokens for GET requests (that might render templates)
 		if r.Method == http.MethodGet {
-			token, err := csrf.GenerateAndSetToken(w, r, app.config.env)
+			token, err := csrf.GenerateAndSetToken(w, r, app.Env)
 			if err != nil {
-				app.logger.Printf("Error generating CSRF token: %v", err)
+				app.Logger.Printf("Error generating CSRF token: %v", err)
 				// Continue anyway - token generation failure shouldn't break the request
 			} else {
 				// Store token in context for handlers to access
@@ -133,7 +131,7 @@ func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
 
 // csrfProtect is middleware that validates CSRF tokens for non-safe HTTP methods
 // Parses form data for POST/PUT/PATCH requests before validation
-func (app *application) csrfProtect(next http.Handler) http.Handler {
+func csrfProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip CSRF validation for safe methods
 		if csrf.IsSafeMethod(r.Method) {
@@ -147,14 +145,14 @@ func (app *application) csrfProtect(next http.Handler) http.Handler {
 		// 2. It's idempotent - safe to call multiple times
 		// 3. We only parse for methods that need CSRF validation
 		if err := r.ParseForm(); err != nil {
-			app.logger.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			app.Logger.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
 			return
 		}
 
 		// Validate CSRF token for non-safe methods
 		if err := csrf.ValidateToken(r); err != nil {
-			app.logger.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			app.Logger.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Forbidden: Invalid CSRF token", http.StatusForbidden)
 			return
 		}
@@ -185,22 +183,12 @@ func cacheControl(next http.Handler) http.Handler {
 	})
 }
 
-// newSessionManager creates and configures a new session manager
-func newSessionManager(env string) *scs.SessionManager {
-	sessionManager := scs.New()
-	sessionManager.Lifetime = 24 * time.Hour
-	sessionManager.Cookie.Secure = helpers.IsSecureCookie(env)
-	sessionManager.Cookie.HttpOnly = true
-	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
-	return sessionManager
-}
-
 // sessionMiddleware wraps the session manager's LoadAndSave middleware
 // and injects the session manager into request context for automatic access
-func (app *application) sessionMiddleware(next http.Handler) http.Handler {
-	return app.session.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+func sessionMiddleware(next http.Handler) http.Handler {
+	return app.Session.LoadAndSave(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Inject session manager into context for automatic access by render package
-		ctx := context.WithValue(r.Context(), render.SessionManagerKey{}, app.session)
+		ctx := context.WithValue(r.Context(), render.SessionManagerKey{}, app.Session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))
 }

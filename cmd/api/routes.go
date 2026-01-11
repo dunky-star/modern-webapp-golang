@@ -1,8 +1,12 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
 
-func (app *application) routes() http.Handler {
+	"github.com/dunky-star/modern-webapp-golang/internal/handlers"
+)
+
+func routes() http.Handler {
 	mux := http.NewServeMux()
 
 	// Static file serving with caching headers (method-specific to avoid Go 1.22+ conflicts)
@@ -11,18 +15,18 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("HEAD /static/", staticHandler.ServeHTTP)
 
 	// Register application routes
-	mux.HandleFunc("GET /", app.homeHandler)
-	mux.HandleFunc("GET /health", app.healthCheckHandler)
-	mux.HandleFunc("GET /about", app.aboutUsHandler)
-	mux.HandleFunc("GET /contact", app.contactHandler)
-	mux.HandleFunc("GET /search-availability", app.searchAvailabilityHandler)
-	mux.HandleFunc("POST /search-availability", app.postAvailabilityHandler)
-	mux.HandleFunc("POST /search-availability-json", app.avialabilityJSONHandler)
-	mux.HandleFunc("GET /generals-quarters", app.generalsQuartersHandler)
-	mux.HandleFunc("GET /majors-suite", app.majorsSuiteHandler)
-	mux.HandleFunc("GET /make-reservation", app.makeReservationHandler)
-	mux.HandleFunc("POST /make-reservation", app.postReservationHandler)
-	mux.HandleFunc("GET /reservation-summary", app.reservationSummary)
+	mux.HandleFunc("GET /", handlers.Repo.HomeHandler)
+	mux.HandleFunc("GET /health", handlers.Repo.HealthCheckHandler)
+	mux.HandleFunc("GET /about", handlers.Repo.AboutUsHandler)
+	mux.HandleFunc("GET /contact", handlers.Repo.ContactHandler)
+	mux.HandleFunc("GET /search-availability", handlers.Repo.SearchAvailabilityHandler)
+	mux.HandleFunc("POST /search-availability", handlers.Repo.PostAvailabilityHandler)
+	mux.HandleFunc("POST /search-availability-json", handlers.Repo.AvialabilityJSONHandler)
+	mux.HandleFunc("GET /generals-quarters", handlers.Repo.GeneralsQuartersHandler)
+	mux.HandleFunc("GET /majors-suite", handlers.Repo.MajorsSuiteHandler)
+	mux.HandleFunc("GET /make-reservation", handlers.Repo.MakeReservationHandler)
+	mux.HandleFunc("POST /make-reservation", handlers.Repo.PostReservationHandler)
+	mux.HandleFunc("GET /reservation-summary", handlers.Repo.ReservationSummary)
 
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
@@ -32,10 +36,10 @@ func (app *application) routes() http.Handler {
 	// -> CSRF token generation
 	// -> Routes
 	return secureHeaders(
-		app.logRequest(
-			app.sessionMiddleware(
-				app.csrfProtect(
-					app.csrfTokenGenerator(mux),
+		logRequest(
+			sessionMiddleware(
+				csrfProtect(
+					csrfTokenGenerator(mux),
 				),
 			),
 		),

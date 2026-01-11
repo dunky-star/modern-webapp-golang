@@ -1,123 +1,35 @@
 package render
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
-	"sync"
+	"path/filepath"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/internal/config"
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
 )
 
-var (
-	templateCache = make(map[string]*template.Template)
-	mu            sync.RWMutex
-)
+var app *config.AppConfig
+var pathToTemplates = "./web"
 
 // SessionManagerKey is the context key for the session manager (exported for middleware use)
 type SessionManagerKey struct{}
 
-// TemplateCache renders a template using cache. Set useCache to false to always reload templates (useful for development)
-// If templateData is nil, no data will be passed to the template
-// Automatically injects CSRF token and session data (flash, warning, error) from request context
-func TemplateCache(w http.ResponseWriter, r *http.Request, logger *log.Logger, t string, useCache bool, templateData interface{}) {
-	// Add default data (flash, warning, error, CSRF token) if templateData is TemplateData
-	if r != nil && templateData != nil {
-		if td, ok := templateData.(*data.TemplateData); ok {
-			// Automatically extract session manager from context and add default data
-			addDefaultData(td, r)
-		} else {
-			// For non-TemplateData types, try to inject CSRF token if possible
-			if tmplData, ok := templateData.(interface {
-				SetCSRFToken(string)
-			}); ok {
-				if token := getCSRFTokenFromContext(r.Context()); token != "" {
-					tmplData.SetCSRFToken(token)
-				}
-			}
-		}
-	}
-	var tmpl *template.Template
-	var err error
-
-	if useCache {
-		// Check cache with read lock first
-		mu.RLock()
-		var inCache bool
-		tmpl, inCache = templateCache[t]
-		mu.RUnlock()
-
-		if !inCache {
-			// Acquire write lock to create template
-			mu.Lock()
-			// Double-check after acquiring lock (another goroutine might have created it)
-			tmpl, inCache = templateCache[t]
-			if !inCache {
-				// Only log template creation in dev mode to reduce production noise
-				if !useCache {
-					logger.Println("Creating template and adding to cache")
-				}
-				err = createTemplateCache(t)
-				if err != nil {
-					mu.Unlock()
-					logger.Println(err)
-					return
-				}
-				tmpl = templateCache[t]
-			}
-			mu.Unlock()
-		}
-		// Note: Removed "Using template from cache" log for performance
-		// Template cache hits are the common case and don't need logging
-	} else {
-		// Development mode: always reload template
-		templates := []string{
-			fmt.Sprintf("./web/%s", t),
-			"./web/base.layout.tmpl",
-		}
-		var parseErr error
-		tmpl, parseErr = template.ParseFiles(templates...)
-		if parseErr != nil {
-			logger.Println(parseErr)
-			return
-		}
-	}
-
-	err = tmpl.Execute(w, templateData)
-	if err != nil {
-		logger.Println(err)
-		return
-	}
+// NewTemplates sets the config for the template package
+func NewTemplates(a *config.AppConfig) {
+	app = a
 }
 
-func createTemplateCache(t string) error {
-	templates := []string{
-		fmt.Sprintf("./web/%s", t),
-		"./web/base.layout.tmpl",
-	}
-
-	// Parse the templates
-	tmpl, err := template.ParseFiles(templates...)
-	if err != nil {
-		return err
-	}
-
-	// Add the template to the cache (caller holds the lock)
-	templateCache[t] = tmpl
-	return nil
-}
-
-// addDefaultData adds default data for all templates (flash, warning, error messages, CSRF token)
-// Automatically extracts session manager from request context
-// Pops messages from session so they're only shown once
-func addDefaultData(td *data.TemplateData, r *http.Request) {
+// AddDefaultData adds data for all templates
+func AddDefaultData(td *data.TemplateData, r *http.Request) *data.TemplateData {
 	// Extract session manager from context (injected by middleware)
 	if session := getSessionManagerFromContext(r.Context()); session != nil {
-		// Pop flash, warning, and error messages from session (one-time display)
 		td.Flash = session.PopString(r.Context(), "flash")
 		td.Warning = session.PopString(r.Context(), "warning")
 		td.Error = session.PopString(r.Context(), "error")
@@ -127,6 +39,73 @@ func addDefaultData(td *data.TemplateData, r *http.Request) {
 	if token := getCSRFTokenFromContext(r.Context()); token != "" {
 		td.SetCSRFToken(token)
 	}
+
+	return td
+}
+
+// TemplateCache renders a template
+func TemplateCache(w http.ResponseWriter, r *http.Request, tmpl string, td *data.TemplateData) error {
+	var tc map[string]*template.Template
+
+	if app != nil && app.UseCache {
+		// get the template cache from the app config
+		tc = app.TemplateCache
+	} else {
+		tc, _ = CreateTemplateCache()
+	}
+
+	t, ok := tc[tmpl]
+	if !ok {
+		return errors.New("could not get template from cache")
+	}
+
+	buf := new(bytes.Buffer)
+
+	td = AddDefaultData(td, r)
+
+	_ = t.Execute(buf, td)
+
+	_, err := buf.WriteTo(w)
+	if err != nil {
+		fmt.Println("error writing template to browser", err)
+		return err
+	}
+
+	return nil
+}
+
+// CreateTemplateCache creates a template cache as a map
+func CreateTemplateCache() (map[string]*template.Template, error) {
+	myCache := map[string]*template.Template{}
+
+	pages, err := filepath.Glob(fmt.Sprintf("%s/*.page.tmpl", pathToTemplates))
+	if err != nil {
+		return myCache, err
+	}
+
+	for _, page := range pages {
+		name := filepath.Base(page)
+		ts, err := template.New(name).ParseFiles(page)
+		if err != nil {
+			return myCache, err
+		}
+
+		matches, err := filepath.Glob(fmt.Sprintf("%s/*.layout.tmpl", pathToTemplates))
+		if err != nil {
+			return myCache, err
+		}
+
+		if len(matches) > 0 {
+			ts, err = ts.ParseGlob(fmt.Sprintf("%s/*.layout.tmpl", pathToTemplates))
+			if err != nil {
+				return myCache, err
+			}
+		}
+
+		myCache[name] = ts
+	}
+
+	return myCache, nil
 }
 
 // getSessionManagerFromContext retrieves session manager from request context

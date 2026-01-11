@@ -1,52 +1,42 @@
 package main
 
 import (
+	"encoding/gob"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/internal/config"
+	"github.com/dunky-star/modern-webapp-golang/internal/data"
+	"github.com/dunky-star/modern-webapp-golang/internal/handlers"
+	"github.com/dunky-star/modern-webapp-golang/internal/render"
 	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 )
 
-const version = "1.0.0"
+const appVersion = "1.0.0"
 
-// Config, to allow the server to be configured at startup dynamically
-type config struct {
-	port int
-	env  string
-}
-
-type application struct {
-	config  config
-	logger  *log.Logger
-	session *scs.SessionManager
-}
-
-var startTime = time.Now()
+var app config.AppConfig
+var appStartTime = time.Now()
 
 func main() {
-	var cfg config
-	flag.IntVar(&cfg.port, "port", 3000, "API server port")
-	flag.StringVar(&cfg.env, "env", "dev", "Environment (dev|stage|prod)")
+	var port int
+	var env string
+	flag.IntVar(&port, "port", 3000, "API server port")
+	flag.StringVar(&env, "env", "dev", "Environment (dev|stage|prod)")
 	flag.Parse()
 
-	// General application logger (stdout)
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
-
-	app := &application{
-		config:  cfg,
-		logger:  logger,
-		session: newSessionManager(cfg.env),
+	err := run(port, env)
+	if err != nil {
+		app.Logger.Fatal(err)
 	}
+
+	app.Logger.Printf("Server is running on %s\n", helpers.GetServerURL(port))
 
 	// Create the HTTP Server
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),     // Set the routes for the server
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      routes(),         // Set the routes for the server
 		ReadTimeout:  10 * time.Second, // Maximum duration for reading the entire request, including the body
 		WriteTimeout: 30 * time.Second, // Maximum duration before timing out writes of the response
 		IdleTimeout:  time.Minute,      // Maximum amount of time to wait for the next request when keep-alives are enabled
@@ -55,9 +45,41 @@ func main() {
 	// Ensure request logger is closed on shutdown
 	defer closeRequestLogger()
 
-	logger.Printf("Server is running on %s\n", helpers.GetServerURL(cfg.port))
-
 	// Start the server and log any error if it fails
-	err := srv.ListenAndServe()
-	logger.Fatal(err)
+	err = srv.ListenAndServe()
+	app.Logger.Fatal(err)
+}
+
+func run(port int, env string) error {
+	// Register types for session storage
+	gob.Register(data.Reservation{})
+
+	// Initialize application configuration
+	cfg := config.New(port, env)
+
+	// Create template cache
+	tc, err := render.CreateTemplateCache()
+	if err != nil {
+		cfg.Logger.Fatal("cannot create template cache")
+		return err
+	}
+
+	// Set template cache and use cache flag
+	cfg.TemplateCache = tc
+	cfg.UseCache = (cfg.Env != "dev")
+
+	app = *cfg
+
+	// Initialize handlers repository
+	repo := handlers.NewRepo(&app)
+	handlers.NewHandlers(repo)
+
+	// Initialize render package with app config
+	render.NewTemplates(&app)
+
+	// Store appStartTime in handlers package for health check
+	handlers.SetAppStartTime(appStartTime)
+	handlers.SetAppVersion(appVersion)
+
+	return nil
 }
