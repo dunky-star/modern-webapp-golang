@@ -21,6 +21,8 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /generals-quarters", app.generalsQuartersHandler)
 	mux.HandleFunc("GET /majors-suite", app.majorsSuiteHandler)
 	mux.HandleFunc("GET /make-reservation", app.makeReservationHandler)
+	mux.HandleFunc("POST /make-reservation", app.postReservationHandler)
+	mux.HandleFunc("GET /reservation-summary", app.reservationSummary)
 
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
