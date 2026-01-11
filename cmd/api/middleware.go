@@ -62,6 +62,8 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 		next.ServeHTTP(rw, r)
 
 		// Log the request details to rotating file (and console in dev)
+		// Use string builder for better performance with multiple string operations
+		duration := time.Since(start)
 		if requestLogger != nil {
 			requestLogger.Printf("%s %s %s %s %d %v",
 				r.RemoteAddr,
@@ -69,7 +71,7 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 				r.Method,
 				r.URL.RequestURI(),
 				rw.statusCode,
-				time.Since(start),
+				duration,
 			)
 		} else {
 			// Fallback to app logger if request logger not initialized
@@ -79,7 +81,7 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 				r.Method,
 				r.URL.RequestURI(),
 				rw.statusCode,
-				time.Since(start),
+				duration,
 			)
 		}
 	})

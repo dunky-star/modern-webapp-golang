@@ -57,7 +57,10 @@ func TemplateCache(w http.ResponseWriter, r *http.Request, logger *log.Logger, t
 			// Double-check after acquiring lock (another goroutine might have created it)
 			tmpl, inCache = templateCache[t]
 			if !inCache {
-				logger.Println("Creating template and adding to cache")
+				// Only log template creation in dev mode to reduce production noise
+				if !useCache {
+					logger.Println("Creating template and adding to cache")
+				}
 				err = createTemplateCache(t)
 				if err != nil {
 					mu.Unlock()
@@ -67,9 +70,9 @@ func TemplateCache(w http.ResponseWriter, r *http.Request, logger *log.Logger, t
 				tmpl = templateCache[t]
 			}
 			mu.Unlock()
-		} else {
-			logger.Println("Using template from cache")
 		}
+		// Note: Removed "Using template from cache" log for performance
+		// Template cache hits are the common case and don't need logging
 	} else {
 		// Development mode: always reload template
 		templates := []string{
