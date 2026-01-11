@@ -88,12 +88,24 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 // responseWriter wraps http.ResponseWriter to capture status code
 type responseWriter struct {
 	http.ResponseWriter
-	statusCode int
+	statusCode    int
+	headerWritten bool
 }
 
 func (rw *responseWriter) WriteHeader(code int) {
+	if rw.headerWritten {
+		return // Prevent multiple WriteHeader calls
+	}
 	rw.statusCode = code
+	rw.headerWritten = true
 	rw.ResponseWriter.WriteHeader(code)
+}
+
+func (rw *responseWriter) Write(b []byte) (int, error) {
+	if !rw.headerWritten {
+		rw.WriteHeader(http.StatusOK)
+	}
+	return rw.ResponseWriter.Write(b)
 }
 
 // csrfTokenGenerator is middleware that generates and sets CSRF tokens for GET requests
@@ -118,11 +130,23 @@ func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
 }
 
 // csrfProtect is middleware that validates CSRF tokens for non-safe HTTP methods
+// Parses form data for POST/PUT/PATCH requests before validation
 func (app *application) csrfProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip CSRF validation for safe methods
 		if csrf.IsSafeMethod(r.Method) {
 			next.ServeHTTP(w, r)
+			return
+		}
+
+		// Parse form for non-safe methods to extract CSRF token
+		// This is safe because:
+		// 1. Go's http.Request.ParseForm() has built-in size limits (10MB default)
+		// 2. It's idempotent - safe to call multiple times
+		// 3. We only parse for methods that need CSRF validation
+		if err := r.ParseForm(); err != nil {
+			app.logger.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
 			return
 		}
 

@@ -55,12 +55,23 @@ func GetCookie(r *http.Request) (string, error) {
 }
 
 // GetTokenFromRequest retrieves CSRF token from header or form
+// Assumes form is already parsed for POST requests (should be done in middleware)
 func GetTokenFromRequest(r *http.Request) string {
 	// Check header first (for AJAX requests)
 	if token := r.Header.Get(HeaderName); token != "" {
 		return token
 	}
-	// Check form field (for traditional form submissions)
+
+	// For POST/PUT/PATCH requests, check PostForm directly (form must be parsed by middleware)
+	if r.Method == http.MethodPost || r.Method == http.MethodPut || r.Method == http.MethodPatch {
+		if r.PostForm != nil {
+			if token := r.PostForm.Get(FormField); token != "" {
+				return token
+			}
+		}
+	}
+
+	// Fallback to FormValue (works for GET query params and already-parsed forms)
 	if token := r.FormValue(FormField); token != "" {
 		return token
 	}
