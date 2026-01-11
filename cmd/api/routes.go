@@ -16,6 +16,8 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("GET /about", app.aboutUsHandler)
 	mux.HandleFunc("GET /contact", app.contactHandler)
 	mux.HandleFunc("GET /search-availability", app.searchAvailabilityHandler)
+	mux.HandleFunc("POST /search-availability", app.postAvailabilityHandler)
+	mux.HandleFunc("GET /search-availability-json", app.avialabilityJSONHandler)
 	mux.HandleFunc("GET /generals-quarters", app.generalsQuartersHandler)
 	mux.HandleFunc("GET /majors-suite", app.majorsSuiteHandler)
 	mux.HandleFunc("GET /make-reservation", app.makeReservationHandler)

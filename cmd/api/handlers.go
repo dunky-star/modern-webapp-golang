@@ -89,9 +89,34 @@ func (app *application) searchAvailabilityHandler(w http.ResponseWriter, r *http
 	render.TemplateCache(w, r, app.logger, "search-availability.page.tmpl", useCache, tmplData)
 }
 
+func (app *application) postAvailabilityHandler(w http.ResponseWriter, r *http.Request) {
+	start := r.FormValue("start")
+	end := r.FormValue("end")
+	w.Write([]byte(fmt.Sprintf("start date is %s and end date is %s", start, end)))
+}
 func (app *application) contactHandler(w http.ResponseWriter, r *http.Request) {
 	useCache := app.config.env != "dev"
 	tmplData := appdata.NewTemplateData()
 	tmplData.Data["Title"] = "Contact Us"
 	render.TemplateCache(w, r, app.logger, "contact.page.tmpl", useCache, tmplData)
+}
+
+type jsonResponse struct {
+	OK      bool   `json:"ok"`
+	Message string `json:"message"`
+}
+
+func (app *application) avialabilityJSONHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	response := jsonResponse{
+		OK:      true,
+		Message: "Available!",
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		app.logger.Println(err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 }
