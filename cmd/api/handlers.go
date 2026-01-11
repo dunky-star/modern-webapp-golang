@@ -7,7 +7,7 @@ import (
 	"time"
 
 	appdata "github.com/dunky-star/modern-webapp-golang/internal/data"
-	"github.com/dunky-star/modern-webapp-golang/pkg/render"
+	"github.com/dunky-star/modern-webapp-golang/internal/render"
 )
 
 func (app *application) healthCheckHandler(w http.ResponseWriter, r *http.Request) {

@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
 )
 
 var (
@@ -96,10 +98,9 @@ func createTemplateCache(t string) error {
 }
 
 // getCSRFTokenFromContext retrieves CSRF token from request context
-// Uses the same string key as csrf middleware (CSRFTokenKey = "csrf_token")
+// Uses the same string key as csrf middleware
 func getCSRFTokenFromContext(ctx context.Context) string {
-	const csrfTokenKey = "csrf_token" // Must match CSRFTokenKey in cmd/api/csrf.go
-	if token, ok := ctx.Value(csrfTokenKey).(string); ok {
+	if token, ok := ctx.Value(csrf.TokenKey).(string); ok {
 		return token
 	}
 	return ""

@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
+	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
+	"github.com/dunky-star/modern-webapp-golang/pkg/logging"
 )
 
 var (
 	requestLogger     *log.Logger
-	requestLogWriter  *rotatingLogWriter
+	requestLogWriter  *logging.RotatingLogWriter
 	requestLoggerOnce sync.Once
 )
 
@@ -20,7 +23,7 @@ var (
 func initRequestLogger(alsoWriteToConsole bool) error {
 	var initErr error
 	requestLoggerOnce.Do(func() {
-		rotatingWriter, err := newRotatingLogWriter(alsoWriteToConsole)
+		rotatingWriter, err := logging.NewRotatingLogWriter(alsoWriteToConsole)
 		if err != nil {
 			initErr = err
 			return
@@ -98,13 +101,13 @@ func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only generate tokens for GET requests (that might render templates)
 		if r.Method == http.MethodGet {
-			token, err := app.generateAndSetCSRFToken(w, r)
+			token, err := csrf.GenerateAndSetToken(w, r, app.config.env)
 			if err != nil {
 				app.logger.Printf("Error generating CSRF token: %v", err)
 				// Continue anyway - token generation failure shouldn't break the request
 			} else {
 				// Store token in context for handlers to access
-				ctx := context.WithValue(r.Context(), CSRFTokenKey, token)
+				ctx := context.WithValue(r.Context(), csrf.TokenKey, token)
 				r = r.WithContext(ctx)
 			}
 		}
@@ -117,13 +120,13 @@ func (app *application) csrfTokenGenerator(next http.Handler) http.Handler {
 func (app *application) csrfProtect(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip CSRF validation for safe methods
-		if isSafeMethod(r.Method) {
+		if csrf.IsSafeMethod(r.Method) {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		// Validate CSRF token for non-safe methods
-		if err := validateCSRFToken(r); err != nil {
+		if err := csrf.ValidateToken(r); err != nil {
 			app.logger.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Forbidden: Invalid CSRF token", http.StatusForbidden)
 			return
@@ -159,7 +162,7 @@ func cacheControl(next http.Handler) http.Handler {
 func newSessionManager(env string) *scs.SessionManager {
 	sessionManager := scs.New()
 	sessionManager.Lifetime = 24 * time.Hour
-	sessionManager.Cookie.Secure = isSecureCookie(env)
+	sessionManager.Cookie.Secure = helpers.IsSecureCookie(env)
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	return sessionManager

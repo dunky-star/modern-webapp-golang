@@ -1,4 +1,4 @@
-package main
+package logging
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 )
 
 const (
-	maxLogSize  = 5 * 1024 * 1024     // 5MB
-	maxLogAge   = 14 * 24 * time.Hour // 2 weeks
-	logDir      = "output/logs"
-	logFileName = "access.log"
+	MaxLogSize  = 5 * 1024 * 1024     // 5MB
+	MaxLogAge   = 14 * 24 * time.Hour // 2 weeks
+	LogDir      = "output/logs"
+	LogFileName = "access.log"
 )
 
-// rotatingLogWriter handles log file rotation based on size and age
-type rotatingLogWriter struct {
+// RotatingLogWriter handles log file rotation based on size and age
+type RotatingLogWriter struct {
 	mu          sync.Mutex
 	currentFile *os.File
 	currentSize int64
@@ -26,14 +26,14 @@ type rotatingLogWriter struct {
 	baseWriter  io.Writer // For console output in dev mode
 }
 
-// newRotatingLogWriter creates a new rotating log writer
-func newRotatingLogWriter(alsoWriteToConsole bool) (*rotatingLogWriter, error) {
+// NewRotatingLogWriter creates a new rotating log writer
+func NewRotatingLogWriter(alsoWriteToConsole bool) (*RotatingLogWriter, error) {
 	// Create log directory if it doesn't exist
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(LogDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
-	logPath := filepath.Join(logDir, logFileName)
+	logPath := filepath.Join(LogDir, LogFileName)
 
 	// Open or create the log file
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
@@ -56,7 +56,7 @@ func newRotatingLogWriter(alsoWriteToConsole bool) (*rotatingLogWriter, error) {
 		fileAge = time.Now()
 	}
 
-	writer := &rotatingLogWriter{
+	writer := &RotatingLogWriter{
 		currentFile: file,
 		currentSize: info.Size(),
 		createdAt:   fileAge,
@@ -68,7 +68,7 @@ func newRotatingLogWriter(alsoWriteToConsole bool) (*rotatingLogWriter, error) {
 	}
 
 	// If existing file is already older than max age, rotate immediately
-	if time.Since(fileAge) >= maxLogAge && info.Size() > 0 {
+	if time.Since(fileAge) >= MaxLogAge && info.Size() > 0 {
 		if err := writer.rotate(); err != nil {
 			return nil, fmt.Errorf("failed to rotate old log file: %w", err)
 		}
@@ -78,7 +78,7 @@ func newRotatingLogWriter(alsoWriteToConsole bool) (*rotatingLogWriter, error) {
 }
 
 // Write implements io.Writer interface
-func (r *rotatingLogWriter) Write(p []byte) (n int, err error) {
+func (r *RotatingLogWriter) Write(p []byte) (n int, err error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -106,14 +106,14 @@ func (r *rotatingLogWriter) Write(p []byte) (n int, err error) {
 }
 
 // shouldRotate checks if log rotation is needed
-func (r *rotatingLogWriter) shouldRotate() bool {
+func (r *RotatingLogWriter) shouldRotate() bool {
 	// Rotate if file size exceeds max size
-	if r.currentSize >= maxLogSize {
+	if r.currentSize >= MaxLogSize {
 		return true
 	}
 
 	// Rotate if file age exceeds max age
-	if time.Since(r.createdAt) >= maxLogAge {
+	if time.Since(r.createdAt) >= MaxLogAge {
 		return true
 	}
 
@@ -121,7 +121,7 @@ func (r *rotatingLogWriter) shouldRotate() bool {
 }
 
 // rotate performs log file rotation
-func (r *rotatingLogWriter) rotate() error {
+func (r *RotatingLogWriter) rotate() error {
 	// Close current file
 	if err := r.currentFile.Close(); err != nil {
 		return fmt.Errorf("failed to close current log file: %w", err)
@@ -157,7 +157,7 @@ func (r *rotatingLogWriter) rotate() error {
 }
 
 // Close closes the log file
-func (r *rotatingLogWriter) Close() error {
+func (r *RotatingLogWriter) Close() error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

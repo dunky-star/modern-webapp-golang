@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 )
 
 const version = "1.0.0"
@@ -54,7 +55,7 @@ func main() {
 	// Ensure request logger is closed on shutdown
 	defer closeRequestLogger()
 
-	logger.Printf("Server is running on %s\n", getServerURL(cfg.port))
+	logger.Printf("Server is running on %s\n", helpers.GetServerURL(cfg.port))
 
 	// Start the server and log any error if it fails
 	err := srv.ListenAndServe()
