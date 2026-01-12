@@ -1,4 +1,4 @@
-.PHONY: help createdb dropdb listdb start stop
+.PHONY: help createdb dropdb listdb start stop migrate migrateup migratedown
 
 # Default PostgreSQL container name (override with: make createdb CONTAINER=your-container-name)
 CONTAINER ?= postgres_container
@@ -24,3 +24,12 @@ start: ## Start the application
 
 stop: ## Stop the application
 	@pkill -f "modern-web-app" 2>/dev/null && echo "Application stopped" || echo "Application is not running"
+
+migrate: ## Create a new migration file
+	migrate create -ext sql -dir db/migrate -seq init_schema
+
+migrateup: ## Run database migrations up
+	migrate -path db/migrate -database "postgresql://postgres:Cluster@1@localhost:5432/m_webapp_go?sslmode=disable" -verbose up
+
+migratedown: ## Run database migrations down
+	migrate -path db/migrate -database "postgresql://postgres:Cluster@1@localhost:5432/m_webapp_go?sslmode=disable" -verbose down
