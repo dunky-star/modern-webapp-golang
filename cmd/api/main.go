@@ -10,8 +10,8 @@ import (
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/internal/handlers"
+	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
-	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 )
 
 const appVersion = "1.0.0"
@@ -76,6 +76,9 @@ func run(port int, env string) error {
 
 	// Initialize render package with app config
 	render.NewTemplates(&app)
+
+	// Initialize helpers package with app config
+	helpers.NewHelpers(&app)
 
 	// Store appStartTime in handlers package for health check
 	handlers.SetAppStartTime(appStartTime)

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
-	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
 )
 
 // AppConfig holds the application configuration
@@ -40,11 +39,16 @@ func New(port int, env string) *AppConfig {
 	}
 }
 
+// IsSecureCookie returns true if cookies should use the Secure flag (HTTPS only)
+func IsSecureCookie(env string) bool {
+	return env == "prod"
+}
+
 // newSessionManager creates and configures a new session manager
 func newSessionManager(env string) *scs.SessionManager {
 	sessionManager := scs.New()
 	sessionManager.Lifetime = 24 * time.Hour
-	sessionManager.Cookie.Secure = helpers.IsSecureCookie(env)
+	sessionManager.Cookie.Secure = IsSecureCookie(env)
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 	return sessionManager

@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/dunky-star/modern-webapp-golang/pkg/helpers"
+	"github.com/dunky-star/modern-webapp-golang/internal/config"
 )
 
 // TokenKey is the context key for CSRF tokens (string key for cross-package compatibility)
@@ -38,7 +38,7 @@ func SetCookie(w http.ResponseWriter, token string, env string) {
 		Value:    token,
 		Path:     "/",
 		HttpOnly: true,
-		Secure:   helpers.IsSecureCookie(env),
+		Secure:   config.IsSecureCookie(env),
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   int(MaxAge.Seconds()),
 	}

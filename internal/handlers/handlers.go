@@ -10,6 +10,7 @@ import (
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
 	appdata "github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/internal/forms"
+	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
 )
 
@@ -51,13 +52,18 @@ func (m *Repository) HealthCheckHandler(w http.ResponseWriter, r *http.Request) 
 	// Calculate uptime dynamically
 	uptime := time.Since(appStartTime).Truncate(time.Second)
 	status := map[string]interface{}{
+		"version":   appVersion,
 		"status":    "available",
 		"uptime":    uptime.String(),
 		"timestamp": time.Now().Format(time.RFC3339),
 	}
-	fmt.Fprintf(w, "Version: %s\n", appVersion)
-	if err := json.NewEncoder(w).Encode(status); err != nil {
-		http.Error(w, fmt.Sprintf(`{"error":"%s"}`, err.Error()), http.StatusInternalServerError)
+
+	// Use Encoder with SetIndent for pretty-printed JSON that browsers will format nicely
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(status); err != nil {
+		helpers.ServerError(w, err)
+		return
 	}
 }
 
@@ -145,8 +151,7 @@ func (m *Repository) AvialabilityJSONHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
-		m.app.ErrorLog.Println(err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		helpers.ServerError(w, err)
 		return
 	}
 }
@@ -167,8 +172,7 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 	// Parse form data
 	err := r.ParseForm()
 	if err != nil {
-		m.app.ErrorLog.Printf("Error parsing form: %v", err)
-		http.Error(w, "Bad Request", http.StatusBadRequest)
+		helpers.ServerError(w, err)
 		return
 	}
 
@@ -220,7 +224,7 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	// Get reservation from session
 	reservation, ok := m.app.Session.Get(r.Context(), "reservation").(data.Reservation)
 	if !ok {
-		m.app.ErrorLog.Println("can't get item from session")
+		m.app.ErrorLog.Printf("ERROR\t can't get item from session")
 		m.app.Session.Put(r.Context(), "error", "Can't get reservation from session")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
