@@ -47,7 +47,7 @@ func logRequest(next http.Handler) http.Handler {
 	alsoWriteToConsole := app.Env == "dev"
 	if err := initRequestLogger(alsoWriteToConsole); err != nil {
 		// Fallback to app logger if rotation init fails
-		app.Logger.Printf("Warning: Failed to initialize request logger: %v", err)
+		app.InfoLog.Printf("Warning: Failed to initialize request logger: %v", err)
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -73,7 +73,7 @@ func logRequest(next http.Handler) http.Handler {
 			)
 		} else {
 			// Fallback to app logger if request logger not initialized
-			app.Logger.Printf("%s %s %s %s %d %v",
+			app.InfoLog.Printf("%s %s %s %s %d %v",
 				r.RemoteAddr,
 				r.Proto,
 				r.Method,
@@ -116,7 +116,7 @@ func csrfTokenGenerator(next http.Handler) http.Handler {
 		if r.Method == http.MethodGet {
 			token, err := csrf.GenerateAndSetToken(w, r, app.Env)
 			if err != nil {
-				app.Logger.Printf("Error generating CSRF token: %v", err)
+				app.InfoLog.Printf("Error generating CSRF token: %v", err)
 				// Continue anyway - token generation failure shouldn't break the request
 			} else {
 				// Store token in context for handlers to access
@@ -145,14 +145,14 @@ func csrfProtect(next http.Handler) http.Handler {
 		// 2. It's idempotent - safe to call multiple times
 		// 3. We only parse for methods that need CSRF validation
 		if err := r.ParseForm(); err != nil {
-			app.Logger.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			app.InfoLog.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
 			return
 		}
 
 		// Validate CSRF token for non-safe methods
 		if err := csrf.ValidateToken(r); err != nil {
-			app.Logger.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+			app.InfoLog.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
 			http.Error(w, "Forbidden: Invalid CSRF token", http.StatusForbidden)
 			return
 		}

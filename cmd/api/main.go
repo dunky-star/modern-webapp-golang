@@ -28,10 +28,10 @@ func main() {
 
 	err := run(port, env)
 	if err != nil {
-		app.Logger.Fatal(err)
+		app.InfoLog.Fatal(err)
 	}
 
-	app.Logger.Printf("Server is running on %s\n", helpers.GetServerURL(port))
+	app.InfoLog.Printf("Server is running on %s\n", helpers.GetServerURL(port))
 
 	// Create the HTTP Server
 	srv := &http.Server{
@@ -47,7 +47,7 @@ func main() {
 
 	// Start the server and log any error if it fails
 	err = srv.ListenAndServe()
-	app.Logger.Fatal(err)
+	app.InfoLog.Fatal(err)
 }
 
 func run(port int, env string) error {
@@ -60,7 +60,7 @@ func run(port int, env string) error {
 	// Create template cache
 	tc, err := render.CreateTemplateCache()
 	if err != nil {
-		cfg.Logger.Fatal("cannot create template cache")
+		cfg.InfoLog.Fatal("cannot create template cache")
 		return err
 	}
 

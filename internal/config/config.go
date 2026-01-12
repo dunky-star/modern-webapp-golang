@@ -15,7 +15,7 @@ import (
 type AppConfig struct {
 	Port          int
 	Env           string
-	Logger        *log.Logger
+	InfoLog       *log.Logger
 	Session       *scs.SessionManager
 	UseCache      bool
 	TemplateCache map[string]*template.Template
@@ -23,13 +23,13 @@ type AppConfig struct {
 
 // New creates a new application configuration
 func New(port int, env string) *AppConfig {
-	logger := log.New(os.Stdout, "", log.Ldate|log.Ltime)
+	infoLog := log.New(os.Stdout, "", log.Ldate|log.Ltime)
 	session := newSessionManager(env)
 
 	return &AppConfig{
 		Port:    port,
 		Env:     env,
-		Logger:  logger,
+		InfoLog: infoLog,
 		Session: session,
 	}
 }
