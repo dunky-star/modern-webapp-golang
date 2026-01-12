@@ -70,7 +70,11 @@ CREATE TABLE room_restrictions (
 );
 
 CREATE INDEX idx_reservations_room_id ON reservations(room_id);
+CREATE INDEX idx_reservations_email ON reservations(email);
+CREATE INDEX idx_reservations_last_name ON reservations(last_name);
 CREATE INDEX idx_room_restrictions_room_id ON room_restrictions(room_id);
 CREATE INDEX idx_room_restrictions_reservation_id ON room_restrictions(reservation_id);
 CREATE INDEX idx_room_restrictions_restriction_id ON room_restrictions(restriction_id);
+CREATE INDEX idx_room_restrictions_start_date ON room_restrictions(start_date);
+CREATE INDEX idx_room_restrictions_end_date ON room_restrictions(end_date);
 
