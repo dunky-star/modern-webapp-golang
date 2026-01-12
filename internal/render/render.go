@@ -47,10 +47,11 @@ func AddDefaultData(td *data.TemplateData, r *http.Request) *data.TemplateData {
 func TemplateCache(w http.ResponseWriter, r *http.Request, tmpl string, td *data.TemplateData) error {
 	var tc map[string]*template.Template
 
-	if app != nil && app.UseCache {
-		// get the template cache from the app config
+	if app != nil && app.TemplateCache != nil {
+		// Always use the pre-built template cache from app config
 		tc = app.TemplateCache
 	} else {
+		// Fallback: create cache on-the-fly if not initialized (shouldn't happen in normal operation)
 		tc, _ = CreateTemplateCache()
 	}
 
