@@ -93,6 +93,7 @@ func run(port int, env string, dsn string) error {
 	if err != nil {
 		cfg.ErrorLog.Fatal(err)
 	}
+	cfg.InfoLog.Println("Database connection pool established successfully")
 
 	// Initialize handlers repository
 	repo := handlers.NewRepo(&app, dbPool)

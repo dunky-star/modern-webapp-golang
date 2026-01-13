@@ -53,7 +53,6 @@ func Init(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 			return
 		}
 
-		fmt.Println("Connected, server time is:", now)
 		pool = p
 	})
 
