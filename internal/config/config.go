@@ -14,6 +14,7 @@ import (
 type AppConfig struct {
 	Port          int
 	Env           string
+	DSN           string
 	InfoLog       *log.Logger
 	ErrorLog      *log.Logger
 	WarningLog    *log.Logger
@@ -23,7 +24,7 @@ type AppConfig struct {
 }
 
 // New creates a new application configuration
-func New(port int, env string) *AppConfig {
+func New(port int, env string, dsn string) *AppConfig {
 	infoLog := log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
 	errorLog := log.New(os.Stdout, "ERROR\t", log.Ldate|log.Ltime|log.Lshortfile)
 	warningLog := log.New(os.Stdout, "WARNING\t", log.Ldate|log.Ltime|log.Lshortfile)
@@ -32,6 +33,7 @@ func New(port int, env string) *AppConfig {
 	return &AppConfig{
 		Port:       port,
 		Env:        env,
+		DSN:        dsn,
 		InfoLog:    infoLog,
 		ErrorLog:   errorLog,
 		WarningLog: warningLog,

@@ -12,6 +12,9 @@ import (
 	"github.com/dunky-star/modern-webapp-golang/internal/forms"
 	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
+	"github.com/dunky-star/modern-webapp-golang/internal/repository"
+	"github.com/dunky-star/modern-webapp-golang/internal/repository/dbrepo"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Repo the repository used by the handlers
@@ -20,12 +23,14 @@ var Repo *Repository
 // Repository is the repository type
 type Repository struct {
 	app *config.AppConfig
+	db  repository.DatabaseConn
 }
 
 // NewRepo creates a new repository
-func NewRepo(a *config.AppConfig) *Repository {
+func NewRepo(a *config.AppConfig, dbconn *pgxpool.Pool) *Repository {
 	return &Repository{
 		app: a,
+		db:  dbrepo.NewDBConnection(dbconn, a),
 	}
 }
 
