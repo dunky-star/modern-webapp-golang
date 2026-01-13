@@ -148,6 +148,7 @@ type jsonResponse struct {
 }
 
 func (m *Repository) AvialabilityJSONHandler(w http.ResponseWriter, r *http.Request) {
+	m.db.AllUsers()
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 
 	response := jsonResponse{

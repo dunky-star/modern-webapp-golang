@@ -14,8 +14,6 @@ type DBConnection struct {
 func NewDBConnection(conn *pgxpool.Pool, app *config.AppConfig) repository.DatabaseConn {
 	return &DBConnection{
 		App: app,
-		DB: conn,
+		DB:  conn,
 	}
 }
-
-
