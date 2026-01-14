@@ -9,7 +9,6 @@ import (
 
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
-	appdata "github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/internal/forms"
 	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
@@ -78,7 +77,7 @@ func (m *Repository) HomeHandler(w http.ResponseWriter, r *http.Request) {
 	m.app.InfoLog.Printf("Remote address: %s", remoteIPAddr)
 	m.app.Session.Put(r.Context(), "remote_addr", remoteIPAddr)
 
-	render.TemplateCache(w, r, "home.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "home.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
 			"Title": "Home, welcome!",
 		},
@@ -89,7 +88,7 @@ func (m *Repository) HomeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Repository) AboutUsHandler(w http.ResponseWriter, r *http.Request) {
-	data := map[string]interface{}{
+	dataMap := map[string]interface{}{
 		"Title": "About Us",
 	}
 	stringMap := make(map[string]string)
@@ -99,14 +98,14 @@ func (m *Repository) AboutUsHandler(w http.ResponseWriter, r *http.Request) {
 		stringMap["remote_addr"] = remoteAddr
 	}
 
-	render.TemplateCache(w, r, "about.page.tmpl", &appdata.TemplateData{
-		Data:      data,
+	render.TemplateCache(w, r, "about.page.tmpl", &data.TemplateData{
+		Data:      dataMap,
 		StringMap: stringMap,
 	})
 }
 
 func (m *Repository) GeneralsQuartersHandler(w http.ResponseWriter, r *http.Request) {
-	render.TemplateCache(w, r, "generals.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "generals.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
 			"Title": "Generals Quarters",
 		},
@@ -114,7 +113,7 @@ func (m *Repository) GeneralsQuartersHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (m *Repository) MajorsSuiteHandler(w http.ResponseWriter, r *http.Request) {
-	render.TemplateCache(w, r, "majors.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "majors.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
 			"Title": "Majors Suite",
 		},
@@ -122,7 +121,7 @@ func (m *Repository) MajorsSuiteHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (m *Repository) SearchAvailabilityHandler(w http.ResponseWriter, r *http.Request) {
-	render.TemplateCache(w, r, "search-availability.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "search-availability.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
 			"Title": "Search Availability",
 		},
@@ -136,7 +135,7 @@ func (m *Repository) PostAvailabilityHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (m *Repository) ContactHandler(w http.ResponseWriter, r *http.Request) {
-	render.TemplateCache(w, r, "contact.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "contact.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
 			"Title": "Contact Us",
 		},
@@ -166,12 +165,12 @@ func (m *Repository) AvialabilityJSONHandler(w http.ResponseWriter, r *http.Requ
 func (m *Repository) MakeReservationHandler(w http.ResponseWriter, r *http.Request) {
 	// Create empty reservation for initial form display
 	var emptyReservation data.Reservation
-	data := make(map[string]interface{})
-	data["reservation"] = emptyReservation
+	dataMap := make(map[string]interface{})
+	dataMap["reservation"] = emptyReservation
 
-	render.TemplateCache(w, r, "make-reservation.page.tmpl", &appdata.TemplateData{
+	render.TemplateCache(w, r, "make-reservation.page.tmpl", &data.TemplateData{
 		Form: forms.New(nil),
-		Data: data,
+		Data: dataMap,
 	})
 }
 
@@ -223,20 +222,34 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 		RoomId:    roomId,
 	}
 
-	data := make(map[string]interface{})
-	data["reservation"] = reservation
+	dataMap := make(map[string]interface{})
+	dataMap["reservation"] = reservation
 
 	// If form is invalid, re-render the form with errors
 	if !form.Valid() {
-		render.TemplateCache(w, r, "make-reservation.page.tmpl", &appdata.TemplateData{
+		render.TemplateCache(w, r, "make-reservation.page.tmpl", &data.TemplateData{
 			Form: form,
-			Data: data,
+			Data: dataMap,
 		})
 		return
 	}
 
 	// Form is valid - save reservation to database
-	err = m.db.InsertReservation(reservation)
+	newReservationId, err := m.db.InsertReservation(reservation)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	restriction := data.RoomRestriction{
+		StartDate:     startDate,
+		EndDate:       endDate,
+		RoomId:        roomId,
+		ReservationId: newReservationId,
+		RestrictionId: 1,
+	}
+
+	err = m.db.InsertRoomRestriction(restriction)
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
@@ -265,10 +278,10 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 	// Remove reservation from session after retrieving it
 	m.app.Session.Remove(r.Context(), "reservation")
 
-	data := make(map[string]interface{})
-	data["reservation"] = reservation
+	dataMap := make(map[string]interface{})
+	dataMap["reservation"] = reservation
 
-	render.TemplateCache(w, r, "reservation-summary.page.tmpl", &appdata.TemplateData{
-		Data: data,
+	render.TemplateCache(w, r, "reservation-summary.page.tmpl", &data.TemplateData{
+		Data: dataMap,
 	})
 }
