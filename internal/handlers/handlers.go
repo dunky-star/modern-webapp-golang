@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
@@ -186,7 +187,7 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 	form := forms.New(r.PostForm)
 
 	// Validate required fields using forms package
-	form.Required("first_name", "last_name", "email", "phone")
+	form.Required("first_name", "last_name", "email", "phone", "start_date", "end_date", "room_id")
 
 	// Validate email format using forms package
 	form.IsEmail("email")
@@ -194,12 +195,32 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 	// Validate minimum length (e.g., phone should be at least 10 characters)
 	form.MinLength("phone", 10, r)
 
+	// Parse date strings to time.Time
+	startDate, err := time.Parse("2006-01-02", r.Form.Get("start_date"))
+	if err != nil {
+		form.Errors.Add("start_date", "Invalid start date format")
+	}
+
+	endDate, err := time.Parse("2006-01-02", r.Form.Get("end_date"))
+	if err != nil {
+		form.Errors.Add("end_date", "Invalid end date format")
+	}
+
+	// Parse room_id string to int
+	roomId, err := strconv.Atoi(r.Form.Get("room_id"))
+	if err != nil {
+		form.Errors.Add("room_id", "Invalid room ID")
+	}
+
 	// Create reservation from form data
 	reservation := data.Reservation{
 		FirstName: r.Form.Get("first_name"),
 		LastName:  r.Form.Get("last_name"),
 		Email:     r.Form.Get("email"),
 		Phone:     r.Form.Get("phone"),
+		StartDate: startDate,
+		EndDate:   endDate,
+		RoomId:    roomId,
 	}
 
 	data := make(map[string]interface{})
@@ -214,8 +235,13 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Form is valid - process the reservation
-	// TODO: Save reservation to database, send confirmation email, etc.
+	// Form is valid - save reservation to database
+	err = m.db.InsertReservation(reservation)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
 	m.app.InfoLog.Printf("Reservation created: %+v", reservation)
 
 	// Store reservation in session for summary page
