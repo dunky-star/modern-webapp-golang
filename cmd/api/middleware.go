@@ -153,7 +153,10 @@ func csrfProtect(next http.Handler) http.Handler {
 		// Validate CSRF token for non-safe methods
 		if err := csrf.ValidateToken(r); err != nil {
 			app.ErrorLog.Printf("CSRF validation failed: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
-			http.Error(w, "Forbidden: Invalid CSRF token", http.StatusForbidden)
+			// For form submissions, redirect back to the same path (as GET) with error message
+			// This provides better UX than showing a 403 error page
+			app.Session.Put(r.Context(), "error", "Your session has expired. Please fill out the form again.")
+			http.Redirect(w, r, r.URL.Path, http.StatusSeeOther)
 			return
 		}
 
@@ -179,6 +182,23 @@ func cacheControl(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Cache static files for 1 hour
 		w.Header().Set("Cache-Control", "public, max-age=3600")
+		next.ServeHTTP(w, r)
+	})
+}
+
+// htmlCacheControl adds appropriate cache headers for dynamic HTML pages
+// Uses "no-cache" to allow conditional requests (ETags) while preventing stale content
+// The CSRF token system already reuses valid tokens from cookies, so we don't need "no-store"
+func htmlCacheControl(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Only apply to GET requests (HTML pages)
+		if r.Method == http.MethodGet {
+			// "no-cache" allows browsers to cache but requires revalidation
+			// This enables ETag/If-None-Match for conditional requests
+			// Vary on Cookie since CSRF tokens and sessions are cookie-based
+			w.Header().Set("Cache-Control", "no-cache, must-revalidate")
+			w.Header().Set("Vary", "Cookie")
+		}
 		next.ServeHTTP(w, r)
 	})
 }

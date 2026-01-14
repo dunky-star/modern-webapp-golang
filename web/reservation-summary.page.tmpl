@@ -19,11 +19,11 @@
                     </tr>
                     <tr>
                         <td>Arrival:</td>
-                        <td></td>
+                        <td>{{$res.StartDate.Format "2006-01-02"}}</td>
                     </tr>
                     <tr>
                         <td>Departure:</td>
-                        <td></td>
+                        <td>{{$res.EndDate.Format "2006-01-02"}}</td>
                     </tr>
                     <tr>
                         <td>Email:</td>
@@ -35,6 +35,11 @@
                     </tr>
                     </tbody>
                 </table>
+
+                <hr>
+                <div class="text-center">
+                    <a href="/make-reservation" class="btn btn-primary">Make Another Reservation</a>
+                </div>
 
             </div>
         </div>

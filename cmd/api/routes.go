@@ -31,15 +31,18 @@ func routes() http.Handler {
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
 	// -> Request logging
+	// -> HTML cache control (for dynamic pages)
 	// -> Session management
 	// -> CSRF protection
 	// -> CSRF token generation
 	// -> Routes
 	return secureHeaders(
 		logRequest(
-			sessionMiddleware(
-				csrfProtect(
-					csrfTokenGenerator(mux),
+			htmlCacheControl(
+				sessionMiddleware(
+					csrfProtect(
+						csrfTokenGenerator(mux),
+					),
 				),
 			),
 		),
