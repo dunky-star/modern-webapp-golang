@@ -68,3 +68,25 @@ func (d *DBConnection) InsertRoomRestriction(r data.RoomRestriction) error {
 
 	return nil
 }
+
+// SearchAvailabilityByDates searches for availability by dates and room id and returns true if available
+func (d *DBConnection) SearchAvailabilityByDates(start, end time.Time, roomId int) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `SELECT COUNT(id) FROM room_restrictions WHERE room_id = $1 AND $2 < end_date AND $3 > start_date`
+
+	var numRows int
+
+	row := d.DB.QueryRow(ctx, query, roomId, start, end)
+
+	err := row.Scan(&numRows)
+	if err != nil {
+		return false, err
+	}
+	if numRows == 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
