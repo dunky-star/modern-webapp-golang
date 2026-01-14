@@ -63,6 +63,10 @@ func main() {
 func run(port int, env string, dsn string) error {
 	// Register types for session storage
 	gob.Register(data.Reservation{})
+	gob.Register(data.Room{})
+	gob.Register(data.Restriction{})
+	gob.Register(data.RoomRestriction{})
+	gob.Register(data.User{})
 
 	// Initialize application configuration
 	cfg := config.New(port, env, dsn)
@@ -100,7 +104,7 @@ func run(port int, env string, dsn string) error {
 	handlers.NewHandlers(repo)
 
 	// Initialize render package with app config
-	render.NewTemplates(&app)
+	render.NewRender(&app)
 
 	// Initialize helpers package with app config
 	helpers.NewHelpers(&app)

@@ -22,7 +22,7 @@ var pathToTemplates = "./web"
 type SessionManagerKey struct{}
 
 // NewTemplates sets the config for the template package
-func NewTemplates(a *config.AppConfig) {
+func NewRender(a *config.AppConfig) {
 	app = a
 }
 
