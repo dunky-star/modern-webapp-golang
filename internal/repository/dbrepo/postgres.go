@@ -18,7 +18,7 @@ func (d *DBConnection) InsertReservation(res data.Reservation) error {
 	defer cancel()
 
 	stmt := `INSERT INTO reservations (first_name, last_name, email, phone, start_date,
-	 end_date, room_id, create_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+	 end_date, room_id, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`
 
 	_, err := d.DB.Exec(ctx, stmt,
 		res.FirstName,
