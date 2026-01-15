@@ -12,11 +12,14 @@
                     <div class="row mt-4">
                         {{range $rooms}}
                         <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{.RoomName}}</h5>
-                                    <p class="card-text">Room ID: {{.Id}}</p>
-                                    <a href="/choose-room?room_id={{.Id}}" class="btn btn-primary">Choose This Room</a>
+                            <div class="card shadow-sm h-100">
+                                <div class="card-body d-flex flex-column">
+                                    <div class="mb-3">
+                                        <h5 class="card-title mb-2">{{.RoomName}}</h5>
+                                    </div>
+                                    <div class="mt-auto">
+                                        <a href="/choose-room?room_id={{.Id}}" class="btn btn-success btn-block">Choose This Room</a>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -8,11 +8,25 @@
 
                 {{$res := index .Data "reservation"}}
 
-                <p><strong>Reservation Details</strong><br>
-                Room: {{$res.Room.RoomName}}<br>
-                Arrival: {{index .StringMap "start_date"}}<br>
-                Departure: {{index .StringMap "end_date"}}
-                </p>
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3"><strong>Reservation Details</strong></h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Room:</strong><br>
+                                <span class="text-primary">{{$res.Room.RoomName}}</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Arrival:</strong><br>
+                                <span class="text-success">{{index .StringMap "start_date"}}</span></p>
+                            </div>
+                            <div class="col-md-4">
+                                <p class="mb-2"><strong>Departure:</strong><br>
+                                <span class="text-danger">{{index .StringMap "end_date"}}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <form method="post" action="" class="" novalidate>
                     <input type="hidden" name="csrf_token" value="{{.CSRFToken}}">
@@ -61,7 +75,7 @@
                     </div>
 
                     <hr>
-                    <input type="submit" class="btn btn-primary" value="Make Reservation">
+                    <input type="submit" class="btn btn-success" value="Make Reservation">
                 </form>
 
 
