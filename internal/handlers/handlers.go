@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -129,9 +128,96 @@ func (m *Repository) SearchAvailabilityHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (m *Repository) PostAvailabilityHandler(w http.ResponseWriter, r *http.Request) {
-	start := r.FormValue("start")
-	end := r.FormValue("end")
-	w.Write([]byte(fmt.Sprintf("start date is %s and end date is %s", start, end)))
+	err := r.ParseForm()
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	// Create form with posted data
+	form := forms.New(r.PostForm)
+
+	// Validate required fields
+	form.Required("start_date", "end_date")
+
+	// Parse date strings to time.Time
+	startDate, err := time.Parse("2006-01-02", r.Form.Get("start_date"))
+	if err != nil {
+		form.Errors.Add("start_date", "Invalid start date format")
+	}
+
+	endDate, err := time.Parse("2006-01-02", r.Form.Get("end_date"))
+	if err != nil {
+		form.Errors.Add("end_date", "Invalid end date format")
+	}
+
+	// If form is invalid, re-render the form with errors
+	if !form.Valid() {
+		render.TemplateCache(w, r, "search-availability.page.tmpl", &data.TemplateData{
+			Form: form,
+			Data: map[string]interface{}{
+				"Title": "Search Availability",
+			},
+		})
+		return
+	}
+
+	rooms, err := m.db.SearchAvailabilityForAllRooms(startDate, endDate)
+	if err != nil {
+		helpers.ServerError(w, err)
+		return
+	}
+
+	if len(rooms) == 0 {
+		m.app.Session.Put(r.Context(), "error", "No rooms available for the selected dates")
+		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
+		return
+	}
+
+	// Store reservation with dates in session
+	res := data.Reservation{
+		StartDate: startDate,
+		EndDate:   endDate,
+	}
+	m.app.Session.Put(r.Context(), "reservation", res)
+
+	// Render choose-room template with available rooms
+	dataMap := map[string]interface{}{
+		"Title": "Choose Your Room",
+		"rooms": rooms,
+	}
+
+	render.TemplateCache(w, r, "choose-room.page.tmpl", &data.TemplateData{
+		Data: dataMap,
+	})
+}
+
+// ChooseRoomHandler handles room selection from choose-room page
+func (m *Repository) ChooseRoomHandler(w http.ResponseWriter, r *http.Request) {
+	// Get reservation from session
+	res, ok := m.app.Session.Get(r.Context(), "reservation").(data.Reservation)
+	if !ok {
+		m.app.Session.Put(r.Context(), "error", "Can't get reservation from session")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	// Get room_id from query
+	roomId, err := strconv.Atoi(r.URL.Query().Get("room_id"))
+	if err != nil {
+		m.app.Session.Put(r.Context(), "error", "Invalid room selection")
+		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
+		return
+	}
+
+	// Set room_id in reservation
+	res.RoomId = roomId
+
+	// Store back in session
+	m.app.Session.Put(r.Context(), "reservation", res)
+
+	// Redirect to make-reservation
+	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
 }
 
 func (m *Repository) ContactHandler(w http.ResponseWriter, r *http.Request) {
@@ -163,70 +249,98 @@ func (m *Repository) AvialabilityJSONHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (m *Repository) MakeReservationHandler(w http.ResponseWriter, r *http.Request) {
-	// Create empty reservation for initial form display
-	var emptyReservation data.Reservation
+	// Get reservation from session
+	res, ok := m.app.Session.Get(r.Context(), "reservation").(data.Reservation)
+	if !ok {
+		m.app.Session.Put(r.Context(), "error", "can't get reservation from session")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	// Get room from database
+	room, err := m.db.GetRoomByID(res.RoomId)
+	if err != nil {
+		m.app.Session.Put(r.Context(), "error", "can't find room!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	res.Room.RoomName = room.RoomName
+
+	// Store reservation back in session
+	m.app.Session.Put(r.Context(), "reservation", res)
+
+	// Format dates for template
+	sd := res.StartDate.Format("2006-01-02")
+	ed := res.EndDate.Format("2006-01-02")
+
+	stringMap := make(map[string]string)
+	stringMap["start_date"] = sd
+	stringMap["end_date"] = ed
+
 	dataMap := make(map[string]interface{})
-	dataMap["reservation"] = emptyReservation
+	dataMap["reservation"] = res
 
 	render.TemplateCache(w, r, "make-reservation.page.tmpl", &data.TemplateData{
-		Form: forms.New(nil),
-		Data: dataMap,
+		Form:      forms.New(nil),
+		Data:      dataMap,
+		StringMap: stringMap,
 	})
 }
 
 func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Request) {
-	// Parse form data
 	err := r.ParseForm()
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.app.Session.Put(r.Context(), "error", "can't parse form!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	// Create form with posted data
-	form := forms.New(r.PostForm)
+	sd := r.Form.Get("start_date")
+	ed := r.Form.Get("end_date")
 
-	// Validate required fields using forms package
-	form.Required("first_name", "last_name", "email", "phone", "start_date", "end_date", "room_id")
+	layout := "2006-01-02"
 
-	// Validate email format using forms package
-	form.IsEmail("email")
-
-	// Validate minimum length (e.g., phone should be at least 10 characters)
-	form.MinLength("phone", 10, r)
-
-	// Parse date strings to time.Time
-	startDate, err := time.Parse("2006-01-02", r.Form.Get("start_date"))
+	startDate, err := time.Parse(layout, sd)
 	if err != nil {
-		form.Errors.Add("start_date", "Invalid start date format")
+		m.app.Session.Put(r.Context(), "error", "can't parse start date")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
 	}
 
-	endDate, err := time.Parse("2006-01-02", r.Form.Get("end_date"))
+	endDate, err := time.Parse(layout, ed)
 	if err != nil {
-		form.Errors.Add("end_date", "Invalid end date format")
+		m.app.Session.Put(r.Context(), "error", "can't parse end date")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
 	}
 
-	// Parse room_id string to int
 	roomId, err := strconv.Atoi(r.Form.Get("room_id"))
 	if err != nil {
-		form.Errors.Add("room_id", "Invalid room ID")
+		m.app.Session.Put(r.Context(), "error", "invalid data!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
 	}
 
-	// Create reservation from form data
 	reservation := data.Reservation{
 		FirstName: r.Form.Get("first_name"),
 		LastName:  r.Form.Get("last_name"),
-		Email:     r.Form.Get("email"),
 		Phone:     r.Form.Get("phone"),
+		Email:     r.Form.Get("email"),
 		StartDate: startDate,
 		EndDate:   endDate,
 		RoomId:    roomId,
 	}
 
-	dataMap := make(map[string]interface{})
-	dataMap["reservation"] = reservation
+	form := forms.New(r.PostForm)
 
-	// If form is invalid, re-render the form with errors
+	form.Required("first_name", "last_name", "email")
+	form.MinLength("first_name", 3, r)
+	form.IsEmail("email")
+
 	if !form.Valid() {
+		dataMap := make(map[string]interface{})
+		dataMap["reservation"] = reservation
 		render.TemplateCache(w, r, "make-reservation.page.tmpl", &data.TemplateData{
 			Form: form,
 			Data: dataMap,

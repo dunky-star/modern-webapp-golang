@@ -112,8 +112,9 @@ func (rw *responseWriter) Write(b []byte) (int, error) {
 // and stores the token in request context for use in templates
 func csrfTokenGenerator(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Only generate tokens for GET requests (that might render templates)
-		if r.Method == http.MethodGet {
+		// Generate tokens for GET requests (that render templates)
+		// Also generate for POST requests that might render templates (like PostAvailabilityHandler)
+		if r.Method == http.MethodGet || r.Method == http.MethodPost {
 			token, err := csrf.GenerateAndSetToken(w, r, app.Env)
 			if err != nil {
 				app.ErrorLog.Printf("Error generating CSRF token: %v", err)

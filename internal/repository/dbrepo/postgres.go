@@ -70,7 +70,7 @@ func (d *DBConnection) InsertRoomRestriction(r data.RoomRestriction) error {
 }
 
 // SearchAvailabilityByDates searches for availability by dates and room id and returns true if available
-func (d *DBConnection) SearchAvailabilityByDates(start, end time.Time, roomId int) (bool, error) {
+func (d *DBConnection) SearchAvailabilityByDatesByRoomId(start, end time.Time, roomId int) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -89,4 +89,59 @@ func (d *DBConnection) SearchAvailabilityByDates(start, end time.Time, roomId in
 	}
 
 	return false, nil
+}
+
+func (d *DBConnection) SearchAvailabilityForAllRooms(start, end time.Time) ([]data.Room, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `
+		SELECT r.id, r.room_name 
+		FROM rooms r
+		WHERE r.id NOT IN (SELECT room_id FROM room_restrictions rr WHERE $1 < rr.end_date AND $2 > rr.start_date)
+		ORDER BY r.room_name
+	`
+
+	var rooms []data.Room
+
+	rows, err := d.DB.Query(ctx, query, start, end)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var room data.Room
+		err := rows.Scan(&room.Id, &room.RoomName)
+		if err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, room)
+	}
+
+	return rooms, nil
+}
+
+// GetRoomByID gets a room by id
+func (d *DBConnection) GetRoomByID(id int) (data.Room, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var room data.Room
+
+	query := `SELECT id, room_name, created_at, updated_at FROM rooms WHERE id = $1`
+
+	row := d.DB.QueryRow(ctx, query, id)
+	err := row.Scan(
+		&room.Id,
+		&room.RoomName,
+		&room.CreatedAt,
+		&room.UpdatedAt,
+	)
+
+	if err != nil {
+		return room, err
+	}
+
+	return room, nil
 }

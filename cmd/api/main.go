@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/gob"
 	"flag"
 	"fmt"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"time"
 
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
-	"github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/internal/driver"
 	"github.com/dunky-star/modern-webapp-golang/internal/handlers"
 	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
@@ -61,13 +59,6 @@ func main() {
 }
 
 func run(port int, env string, dsn string) error {
-	// Register types for session storage
-	gob.Register(data.Reservation{})
-	gob.Register(data.Room{})
-	gob.Register(data.Restriction{})
-	gob.Register(data.RoomRestriction{})
-	gob.Register(data.User{})
-
 	// Initialize application configuration
 	cfg := config.New(port, env, dsn)
 

@@ -10,5 +10,7 @@ type DatabaseConn interface {
 	AllUsers() bool
 	InsertReservation(res data.Reservation) (int, error)
 	InsertRoomRestriction(r data.RoomRestriction) error
-	SearchAvailabilityByDates(start, end time.Time, roomId int) (bool, error)
+	SearchAvailabilityByDatesByRoomId(start, end time.Time, roomId int) (bool, error)
+	SearchAvailabilityForAllRooms(start, end time.Time) ([]data.Room, error)
+	GetRoomByID(id int) (data.Room, error)
 }

@@ -41,6 +41,7 @@ type Reservation struct {
 	RoomId    int       `json:"room_id"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+	Room      Room      `json:"room"`
 }
 
 type RoomRestriction struct {
@@ -59,6 +60,9 @@ type RoomRestriction struct {
 
 // init registers custom types with gob for session serialization
 func init() {
-	// Register Reservation type for session storage (scs uses gob encoding)
+	// Register types that are actually stored in sessions
 	gob.Register(Reservation{})
+	gob.Register(Room{})
+	gob.Register([]Room{})
+	gob.Register(time.Time{})
 }
