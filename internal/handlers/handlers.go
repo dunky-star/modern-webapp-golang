@@ -202,8 +202,8 @@ func (m *Repository) ChooseRoomHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get room_id from query
-	roomId, err := strconv.Atoi(r.URL.Query().Get("room_id"))
+	// Get room_id from path parameter
+	roomId, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		m.app.Session.Put(r.Context(), "error", "Invalid room selection")
 		http.Redirect(w, r, "/search-availability", http.StatusSeeOther)
