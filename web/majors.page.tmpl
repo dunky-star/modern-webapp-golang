@@ -91,6 +91,7 @@
                 fetch('/search-availability-json', {
                     method: "post",
                     body: formData,
+                    credentials: 'same-origin',
                 })
                     .then(response => response.json())
                     .then(data => {
