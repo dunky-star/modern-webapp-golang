@@ -220,6 +220,35 @@ func (m *Repository) ChooseRoomHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
 }
 
+// BookRoom takes URL parameters, builds a sessional variable, and takes user to make res screen
+func (m *Repository) BookRoomHandler(w http.ResponseWriter, r *http.Request) {
+	roomID, _ := strconv.Atoi(r.URL.Query().Get("id"))
+	sd := r.URL.Query().Get("s")
+	ed := r.URL.Query().Get("e")
+
+	layout := "2006-01-02"
+	startDate, _ := time.Parse(layout, sd)
+	endDate, _ := time.Parse(layout, ed)
+
+	var res data.Reservation
+
+	room, err := m.db.GetRoomByID(roomID)
+	if err != nil {
+		m.app.Session.Put(r.Context(), "error", "Can't get room from db!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
+
+	res.Room.RoomName = room.RoomName
+	res.RoomId = roomID
+	res.StartDate = startDate
+	res.EndDate = endDate
+
+	m.app.Session.Put(r.Context(), "reservation", res)
+
+	http.Redirect(w, r, "/make-reservation", http.StatusSeeOther)
+}
+
 func (m *Repository) ContactHandler(w http.ResponseWriter, r *http.Request) {
 	render.TemplateCache(w, r, "contact.page.tmpl", &data.TemplateData{
 		Data: map[string]interface{}{
@@ -229,23 +258,61 @@ func (m *Repository) ContactHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type jsonResponse struct {
-	OK      bool   `json:"ok"`
-	Message string `json:"message"`
+	OK        bool   `json:"ok"`
+	Message   string `json:"message"`
+	RoomID    string `json:"room_id"`
+	StartDate string `json:"start_date"`
+	EndDate   string `json:"end_date"`
 }
 
 func (m *Repository) AvialabilityJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m.db.AllUsers()
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
-	response := jsonResponse{
-		OK:      true,
-		Message: "Available!",
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		helpers.ServerError(w, err)
+	err := r.ParseForm()
+	if err != nil {
+		resp := jsonResponse{
+			OK:      false,
+			Message: "Internal server error",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "     ")
+		encoder.Encode(resp)
 		return
 	}
+
+	sd := r.Form.Get("start")
+	ed := r.Form.Get("end")
+
+	layout := "2006-01-02"
+	startDate, _ := time.Parse(layout, sd)
+	endDate, _ := time.Parse(layout, ed)
+
+	roomID, _ := strconv.Atoi(r.Form.Get("room_id"))
+
+	available, err := m.db.SearchAvailabilityByDatesByRoomId(startDate, endDate, roomID)
+	if err != nil {
+		resp := jsonResponse{
+			OK:      false,
+			Message: "Error querying database",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		encoder := json.NewEncoder(w)
+		encoder.SetIndent("", "     ")
+		encoder.Encode(resp)
+		return
+	}
+
+	resp := jsonResponse{
+		OK:        available,
+		Message:   "",
+		StartDate: sd,
+		EndDate:   ed,
+		RoomID:    strconv.Itoa(roomID),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "     ")
+	encoder.Encode(resp)
 }
 
 func (m *Repository) MakeReservationHandler(w http.ResponseWriter, r *http.Request) {
@@ -315,7 +382,7 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	roomId, err := strconv.Atoi(r.Form.Get("room_id"))
+	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
 	if err != nil {
 		m.app.Session.Put(r.Context(), "error", "invalid data!")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
@@ -329,7 +396,7 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 		Email:     r.Form.Get("email"),
 		StartDate: startDate,
 		EndDate:   endDate,
-		RoomId:    roomId,
+		RoomId:    roomID,
 	}
 
 	form := forms.New(r.PostForm)
@@ -348,54 +415,55 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	// Form is valid - save reservation to database
-	newReservationId, err := m.db.InsertReservation(reservation)
+	newReservationID, err := m.db.InsertReservation(reservation)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.app.Session.Put(r.Context(), "error", "can't insert reservation into database!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
 	restriction := data.RoomRestriction{
 		StartDate:     startDate,
 		EndDate:       endDate,
-		RoomId:        roomId,
-		ReservationId: newReservationId,
+		RoomId:        roomID,
+		ReservationId: newReservationID,
 		RestrictionId: 1,
 	}
 
 	err = m.db.InsertRoomRestriction(restriction)
 	if err != nil {
-		helpers.ServerError(w, err)
+		m.app.Session.Put(r.Context(), "error", "can't insert room restriction!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	m.app.InfoLog.Printf("Reservation created: %+v", reservation)
-
-	// Store reservation in session for summary page
 	m.app.Session.Put(r.Context(), "reservation", reservation)
 
-	// Redirect to reservation summary page
 	http.Redirect(w, r, "/reservation-summary", http.StatusSeeOther)
 }
 
-// ReservationSummary displays the res summary page
+// ReservationSummary displays the reservation summary page
 func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
-	// Get reservation from session
 	reservation, ok := m.app.Session.Get(r.Context(), "reservation").(data.Reservation)
 	if !ok {
-		m.app.ErrorLog.Printf("ERROR\t can't get item from session")
 		m.app.Session.Put(r.Context(), "error", "Can't get reservation from session")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	// Remove reservation from session after retrieving it
 	m.app.Session.Remove(r.Context(), "reservation")
 
 	dataMap := make(map[string]interface{})
 	dataMap["reservation"] = reservation
 
+	sd := reservation.StartDate.Format("2006-01-02")
+	ed := reservation.EndDate.Format("2006-01-02")
+	stringMap := make(map[string]string)
+	stringMap["start_date"] = sd
+	stringMap["end_date"] = ed
+
 	render.TemplateCache(w, r, "reservation-summary.page.tmpl", &data.TemplateData{
-		Data: dataMap,
+		Data:      dataMap,
+		StringMap: stringMap,
 	})
 }

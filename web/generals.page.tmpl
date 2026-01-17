@@ -79,6 +79,14 @@
                 const rp = new DateRangePicker(elem, {
                     format: 'yyyy-mm-dd',
                     showOnFocus: true,
+                    minDate: new Date(),
+                    maxDate: new Date(new Date().getFullYear() + 1, 11, 31),
+                    disabledDates: [
+                        {
+                            from: new Date(),
+                            to: new Date(new Date().getFullYear() + 1, 11, 31),
+                        },
+                    ],
                 })
             },
             didOpen: () => {

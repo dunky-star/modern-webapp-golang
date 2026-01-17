@@ -23,6 +23,7 @@ func routes() http.Handler {
 	mux.HandleFunc("POST /search-availability", handlers.Repo.PostAvailabilityHandler)
 	mux.HandleFunc("POST /search-availability-json", handlers.Repo.AvialabilityJSONHandler)
 	mux.HandleFunc("GET /choose-room/{id}", handlers.Repo.ChooseRoomHandler)
+	mux.HandleFunc("GET /book-room", handlers.Repo.BookRoomHandler)
 	mux.HandleFunc("GET /generals-quarters", handlers.Repo.GeneralsQuartersHandler)
 	mux.HandleFunc("GET /majors-suite", handlers.Repo.MajorsSuiteHandler)
 	mux.HandleFunc("GET /make-reservation", handlers.Repo.MakeReservationHandler)
