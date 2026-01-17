@@ -141,14 +141,26 @@ func csrfProtect(next http.Handler) http.Handler {
 		}
 
 		// Parse form for non-safe methods to extract CSRF token
-		// This is safe because:
-		// 1. Go's http.Request.ParseForm() has built-in size limits (10MB default)
-		// 2. It's idempotent - safe to call multiple times
-		// 3. We only parse for methods that need CSRF validation
-		if err := r.ParseForm(); err != nil {
-			app.ErrorLog.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
-			http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
-			return
+		// Handle both application/x-www-form-urlencoded and multipart/form-data
+		contentType := r.Header.Get("Content-Type")
+		if contentType == "multipart/form-data" || len(contentType) > 19 && contentType[:19] == "multipart/form-data" {
+			// Parse multipart form (used by FormData in fetch)
+			if err := r.ParseMultipartForm(10 << 20); err != nil { // 10MB limit
+				app.ErrorLog.Printf("Error parsing multipart form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+				http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
+				return
+			}
+		} else {
+			// Parse regular form (application/x-www-form-urlencoded)
+			// This is safe because:
+			// 1. Go's http.Request.ParseForm() has built-in size limits (10MB default)
+			// 2. It's idempotent - safe to call multiple times
+			// 3. We only parse for methods that need CSRF validation
+			if err := r.ParseForm(); err != nil {
+				app.ErrorLog.Printf("Error parsing form for CSRF validation: %v - %s %s from %s", err, r.Method, r.URL.Path, r.RemoteAddr)
+				http.Error(w, "Bad Request: Invalid form data", http.StatusBadRequest)
+				return
+			}
 		}
 
 		// Validate CSRF token for non-safe methods
