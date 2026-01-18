@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/alexedwards/scs/v2"
+	"github.com/dunky-star/modern-webapp-golang/internal/data"
 )
 
 // AppConfig holds the application configuration
@@ -21,6 +22,7 @@ type AppConfig struct {
 	Session       *scs.SessionManager
 	UseCache      bool
 	TemplateCache map[string]*template.Template
+	MailChan      chan data.MailData
 }
 
 // New creates a new application configuration

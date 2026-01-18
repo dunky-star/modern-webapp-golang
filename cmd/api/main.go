@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
+	"github.com/dunky-star/modern-webapp-golang/internal/data"
 	"github.com/dunky-star/modern-webapp-golang/internal/driver"
 	"github.com/dunky-star/modern-webapp-golang/internal/handlers"
 	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
@@ -38,6 +39,18 @@ func main() {
 
 	// Close database connection when application exits
 	defer driver.Close()
+	// Close email channel when application exits
+	defer close(app.MailChan)
+	// Listen for mail messages using goroutine to send emails
+	listerForMail()
+
+	msg := data.MailData{
+		To:      "dunky@do.us",
+		From:    "me@here.com",
+		Subject: "Test email",
+		Content: "",
+	}
+	app.MailChan <- msg
 
 	app.InfoLog.Printf("Server is running on %s\n", helpers.GetServerURL(port))
 
@@ -59,6 +72,10 @@ func main() {
 }
 
 func run(port int, env string, dsn string) error {
+	// Create a channel for sending emails
+	mailChan := make(chan data.MailData)
+	app.MailChan = mailChan
+
 	// Initialize application configuration
 	cfg := config.New(port, env, dsn)
 

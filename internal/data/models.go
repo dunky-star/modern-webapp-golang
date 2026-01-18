@@ -2,6 +2,7 @@ package data
 
 import (
 	"encoding/gob"
+	"html/template"
 	"time"
 )
 
@@ -56,6 +57,14 @@ type RoomRestriction struct {
 	Room          Room        `json:"room"`
 	Reservation   Reservation `json:"reservation"`
 	Restriction   Restriction `json:"restriction"`
+}
+
+// MailData holds an email message
+type MailData struct {
+	To      string
+	From    string
+	Subject string
+	Content template.HTML
 }
 
 // init registers custom types with gob for session serialization
