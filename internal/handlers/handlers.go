@@ -536,3 +536,11 @@ func (m *Repository) LogoutHandler(w http.ResponseWriter, r *http.Request) {
 	m.app.Session.Put(r.Context(), "flash", "Logged out successfully")
 	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
 }
+
+func (m *Repository) AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
+	render.TemplateCache(w, r, "admin-dashboard.page.tmpl", &data.TemplateData{
+		Data: map[string]interface{}{
+			"Title": "Admin Dashboard",
+		},
+	})
+}

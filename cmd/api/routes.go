@@ -32,6 +32,7 @@ func routes() http.Handler {
 	mux.HandleFunc("GET /make-reservation", handlers.Repo.MakeReservationHandler)
 	mux.HandleFunc("POST /make-reservation", handlers.Repo.PostReservationHandler)
 	mux.HandleFunc("GET /reservation-summary", handlers.Repo.ReservationSummary)
+	mux.Handle("GET /admin/dashboard", authMiddleware(http.HandlerFunc(handlers.Repo.AdminDashboardHandler)))
 
 	// Apply middleware chain (order matters: last middleware wraps first)
 	// Security headers (outermost - applies to all responses)
