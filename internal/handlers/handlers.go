@@ -446,10 +446,11 @@ func (m *Repository) PostReservationHandler(w http.ResponseWriter, r *http.Reque
 	`, reservation.FirstName, reservation.StartDate.Format("2006-01-02"), reservation.EndDate.Format("2006-01-02"))
 
 	msg := data.MailData{
-		To:      reservation.Email,
-		From:    "me@here.com",
-		Subject: "Reservation Confirmation",
-		Content: template.HTML(htmlMessage),
+		To:       reservation.Email,
+		From:     "me@here.com",
+		Subject:  "Reservation Confirmation",
+		Content:  template.HTML(htmlMessage),
+		Template: "dunky.html",
 	}
 	m.app.MailChan <- msg
 

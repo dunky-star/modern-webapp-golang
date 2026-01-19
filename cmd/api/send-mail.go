@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
@@ -36,7 +39,18 @@ func sendMail(m data.MailData) {
 	email := mail.NewMSG()
 	email.SetFrom(m.From).AddTo(m.To).SetSubject(m.Subject)
 	// Convert template.HTML to string for email library (template.HTML is a type-safe alias for trusted HTML)
-	email.SetBody(mail.TextHTML, string(m.Content))
+	if m.Template == "" {
+		email.SetBody(mail.TextHTML, string(m.Content))
+	} else {
+		data, err := os.ReadFile(fmt.Sprintf("./web/email-templates/%s", m.Template))
+		if err != nil {
+			app.ErrorLog.Printf("Failed to read template file: %v", err)
+			return
+		}
+		mailTemplate := string(data)
+		mailTemplate = strings.Replace(mailTemplate, "[%body%]", string(m.Content), 1)
+		email.SetBody(mail.TextHTML, mailTemplate)
+	}
 
 	err = email.Send(smtpClient)
 	if err != nil {

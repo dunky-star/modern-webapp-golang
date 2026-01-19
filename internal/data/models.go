@@ -61,10 +61,11 @@ type RoomRestriction struct {
 
 // MailData holds an email message
 type MailData struct {
-	To      string
-	From    string
-	Subject string
-	Content template.HTML
+	To       string
+	From     string
+	Subject  string
+	Content  template.HTML
+	Template string
 }
 
 // init registers custom types with gob for session serialization
