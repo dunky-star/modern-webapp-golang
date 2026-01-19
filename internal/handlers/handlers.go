@@ -502,17 +502,23 @@ func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 		m.app.Session.Put(r.Context(), "error", "can't parse form!")
 		return
 	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
 	form := forms.New(r.PostForm)
 	form.Required("email", "password")
 
 	if !form.Valid() {
-		m.app.Session.Put(r.Context(), "error", "invalid form data!")
-		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		dataMap := make(map[string]interface{})
+		dataMap["error"] = "Invalid email or password"
+		render.TemplateCache(w, r, "login.page.tmpl", &data.TemplateData{
+			Form: form,
+			Data: map[string]interface{}{
+				"Title": "Login",
+			},
+		})
 		return
 	}
-
-	email := r.Form.Get("email")
-	password := r.Form.Get("password")
 
 	id, _, err := m.db.Authenticate(email, password)
 	if err != nil {
