@@ -484,3 +484,12 @@ func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) 
 		StringMap: stringMap,
 	})
 }
+
+func (m *Repository) ShowLoginHandler(w http.ResponseWriter, r *http.Request) {
+	render.TemplateCache(w, r, "login.page.tmpl", &data.TemplateData{
+		Form: forms.New(nil),
+		Data: map[string]interface{}{
+			"Title": "Login",
+		},
+	})
+}
