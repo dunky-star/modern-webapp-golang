@@ -13,4 +13,6 @@ type DatabaseConn interface {
 	SearchAvailabilityByDatesByRoomId(start, end time.Time, roomId int) (bool, error)
 	SearchAvailabilityForAllRooms(start, end time.Time) ([]data.Room, error)
 	GetRoomByID(id int) (data.Room, error)
+	GetUserByEmail(email string) (data.User, error)
+	UpdateUser(u data.User) error
 }

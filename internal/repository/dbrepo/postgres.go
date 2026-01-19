@@ -145,3 +145,50 @@ func (d *DBConnection) GetRoomByID(id int) (data.Room, error) {
 
 	return room, nil
 }
+
+func (d *DBConnection) GetUserByEmail(email string) (data.User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var u data.User
+
+	query := `SELECT id, first_name, last_name, email, password, access_level, created_at, updated_at
+			  FROM users
+			  WHERE email = $1 LIMIT 1`
+	row := d.DB.QueryRow(ctx, query, email)
+	err := row.Scan(
+		&u.Id,
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+		&u.Password,
+		&u.AccessLevel,
+		&u.CreatedAt,
+		&u.UpdatedAt)
+	if err != nil {
+		return u, err
+	}
+
+	return u, nil
+}
+
+// Udate the user in the database.
+func (d *DBConnection) UpdateUser(u data.User) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	query := `UPDATE users SET first_name = $1, last_name = $2, email = $3, access_level = $4, updated_at = $5`
+	_, err := d.DB.Exec(ctx, query,
+		u.FirstName,
+		u.LastName,
+		u.Email,
+		u.AccessLevel,
+		time.Now(),
+	)
+	if err != nil {
+		d.App.ErrorLog.Println(err)
+		d.App.ErrorLog.Println("Error updating user in database")
+		return err
+	}
+	return nil
+}
