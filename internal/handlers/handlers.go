@@ -509,8 +509,6 @@ func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	form.Required("email", "password")
 
 	if !form.Valid() {
-		dataMap := make(map[string]interface{})
-		dataMap["error"] = "Invalid email or password"
 		render.TemplateCache(w, r, "login.page.tmpl", &data.TemplateData{
 			Form: form,
 			Data: map[string]interface{}{
