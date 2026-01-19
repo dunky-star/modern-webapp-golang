@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/internal/render"
 	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
 	"github.com/dunky-star/modern-webapp-golang/pkg/logging"
@@ -224,4 +225,16 @@ func sessionMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(r.Context(), render.SessionManagerKey{}, app.Session)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}))
+}
+
+// authMiddleware checks if the user is authenticated
+func authMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !helpers.IsAuthenticated(r) {
+			app.Session.Put(r.Context(), "error", "You must be logged in to access this page")
+			http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }

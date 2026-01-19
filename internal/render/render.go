@@ -12,6 +12,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/dunky-star/modern-webapp-golang/internal/config"
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
+	"github.com/dunky-star/modern-webapp-golang/internal/helpers"
 	"github.com/dunky-star/modern-webapp-golang/pkg/csrf"
 )
 
@@ -39,6 +40,8 @@ func AddDefaultData(td *data.TemplateData, r *http.Request) *data.TemplateData {
 	if token := getCSRFTokenFromContext(r.Context()); token != "" {
 		td.SetCSRFToken(token)
 	}
+	// Check if the user is authenticated
+	td.IsAuthenticated = helpers.IsAuthenticated(r) || app.Session.Exists(r.Context(), "user_id")
 
 	return td
 }

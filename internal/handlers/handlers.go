@@ -529,3 +529,10 @@ func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
 	m.app.Session.Put(r.Context(), "flash", "Logged in successfully")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
+
+func (m *Repository) LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	_ = m.app.Session.Destroy(r.Context())
+	_ = m.app.Session.RenewToken(r.Context())
+	m.app.Session.Put(r.Context(), "flash", "Logged out successfully")
+	http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+}
