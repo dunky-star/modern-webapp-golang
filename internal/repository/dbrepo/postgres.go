@@ -2,9 +2,11 @@ package dbrepo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/dunky-star/modern-webapp-golang/internal/data"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (d *DBConnection) AllUsers() bool {
@@ -146,6 +148,7 @@ func (d *DBConnection) GetRoomByID(id int) (data.Room, error) {
 	return room, nil
 }
 
+// Get the user by email from the database.
 func (d *DBConnection) GetUserByEmail(email string) (data.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -177,7 +180,8 @@ func (d *DBConnection) UpdateUser(u data.User) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	query := `UPDATE users SET first_name = $1, last_name = $2, email = $3, access_level = $4, updated_at = $5`
+	query := `UPDATE users SET first_name = $1, last_name = $2, email = $3, access_level = $4, updated_at = $5
+		WHERE email = $6`
 	_, err := d.DB.Exec(ctx, query,
 		u.FirstName,
 		u.LastName,
@@ -191,4 +195,26 @@ func (d *DBConnection) UpdateUser(u data.User) error {
 		return err
 	}
 	return nil
+}
+
+// Authenticate the user with the database.
+func (d *DBConnection) Authenticate(email, testPassword string) (int, string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	var id int
+	var hashedPassword string
+
+	query := `SELECT id, password FROM users WHERE email = $1 LIMIT 1`
+	row := d.DB.QueryRow(ctx, query, email)
+	err := row.Scan(&id, &hashedPassword)
+	if err != nil {
+		return 0, "", err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(testPassword))
+	if err == bcrypt.ErrMismatchedHashAndPassword {
+		return 0, "", errors.New("incorrect password")
+	}
+	return id, hashedPassword, nil
 }

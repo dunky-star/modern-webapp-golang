@@ -493,3 +493,35 @@ func (m *Repository) ShowLoginHandler(w http.ResponseWriter, r *http.Request) {
 		},
 	})
 }
+
+// Handles logging the user in
+func (m *Repository) PostLoginHandler(w http.ResponseWriter, r *http.Request) {
+	_ = m.app.Session.RenewToken(r.Context())
+	err := r.ParseForm()
+	if err != nil {
+		m.app.Session.Put(r.Context(), "error", "can't parse form!")
+		return
+	}
+	form := forms.New(r.PostForm)
+	form.Required("email", "password")
+
+	if !form.Valid() {
+		m.app.Session.Put(r.Context(), "error", "invalid form data!")
+		http.Redirect(w, r, "/user/login", http.StatusTemporaryRedirect)
+		return
+	}
+
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+
+	id, _, err := m.db.Authenticate(email, password)
+	if err != nil {
+		m.app.Session.Put(r.Context(), "error", "can't authenticate user!")
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	m.app.Session.Put(r.Context(), "user_id", id)
+	m.app.Session.Put(r.Context(), "flash", "Logged in successfully")
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}

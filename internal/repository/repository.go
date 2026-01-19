@@ -15,4 +15,5 @@ type DatabaseConn interface {
 	GetRoomByID(id int) (data.Room, error)
 	GetUserByEmail(email string) (data.User, error)
 	UpdateUser(u data.User) error
+	Authenticate(email, testPassword string) (int, string, error)
 }
