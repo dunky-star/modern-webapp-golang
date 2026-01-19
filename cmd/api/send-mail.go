@@ -7,7 +7,7 @@ import (
 	mail "github.com/xhit/go-simple-mail/v2"
 )
 
-func listerForMail() {
+func listenForMail() {
 	app.InfoLog.Println("Email listener started - ready to send emails")
 	go func() {
 		for {

@@ -42,17 +42,9 @@ func main() {
 	// Close email channel when application exits
 	defer close(app.MailChan)
 	// Listen for mail messages using goroutine to send emails
-	listerForMail()
+	listenForMail()
 
-	msg := data.MailData{
-		To:      "dunky@do.us",
-		From:    "me@here.com",
-		Subject: "Test email",
-		Content: "",
-	}
-	app.MailChan <- msg
-
-	app.InfoLog.Printf("Server is running on %s\n", helpers.GetServerURL(port))
+	app.InfoLog.Printf("Server is running on port %s\n", helpers.GetServerURL(port))
 
 	// Create the HTTP Server
 	srv := &http.Server{
@@ -89,6 +81,9 @@ func run(port int, env string, dsn string) error {
 	// Set template cache and use cache flag
 	cfg.TemplateCache = tc
 	cfg.UseCache = (cfg.Env != "dev")
+
+	// Preserve the mail channel that was created earlier
+	cfg.MailChan = mailChan
 
 	app = *cfg
 
